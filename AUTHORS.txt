@@ -1,0 +1,7 @@
+Authors ordered by first contribution.
+
+Habib Yousuf A.Y. <nucleusae@gmail.com; http://www.net-bits.net/> (Original author)
+Paddy Sparks (Graphics)
+Mike McAlpin <http://mmdesigns.us/> (GUI/NB Webchat v3 Project Lead)
+
+See the revision history for newer contributions available at https://github.com/net-bits-net/nbwebchat_v3
