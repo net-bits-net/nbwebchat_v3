@@ -1,0 +1,6 @@
+﻿<flash_project name="AJAXFlashChat" version="1">
+    <project_folder name="NBClasses" expanded="true">
+        <project_file path="./NBClasses/chatsocket.as" filetype="as" />
+    </project_folder>
+    <project_file path="./ajaxfc.fla" filetype="fla" profile="" />
+</flash_project>
