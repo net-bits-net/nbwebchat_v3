@@ -1,0 +1,21 @@
+body { background-color:#285E83; }
+#logoholder { background-color:#285E83; }
+#headerlogo { text-shadow: 2px 2px 2px #000;color:#fff; }
+#headertop { background-color:transparent; }
+#headernav ul { background-color:#17384F; }
+#headernav ul li a { color:white;font-weight:bold;text-decoration:none; }
+#headernav ul li a:hover { background-color:#285E83; }
+.lvuitemlbMe { background-color: transparent;color:white !important;}
+.lvuitemlbMeSel { background-color: transparent;color:white !important; }
+#nicklistinfo1 { color:white;background-color:#285E83; }
+#nicklistinfo2 { background-color:#285E82;color:white; }
+.channame_nowchatting { color:white; }
+.chanlabel { color:#E8F0F7;font-weight:bold; }
+#wndSetAwayMsgContainer { background-color:#285E83; }
+.awaymsgabouttext { color:#FFF; }
+#whisperheader { background-color:#285E83; }
+#sliderContent {color:#333333;border:2px solid #285E82; }
+#topheaderbar { background-color:#285E82;color:white; }
+#whisperhistoryheader { background-color:#285E83; }
+.whisperwindowholder { background-color:#285E83; }
+#optionsheader, #modesheader, #accessheader, #propsheader { background-color:#285E83;color:white; }

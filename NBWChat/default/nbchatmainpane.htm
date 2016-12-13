@@ -1,0 +1,89 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+<TITLE>Chat Pane</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=utf-8">
+    <link rel="stylesheet" href="nbchat30.css" type="text/css" />
+<STYLE type=text/css>
+BODY {
+	BACKGROUND-COLOR: transparent;
+	background-position: top right;
+    background-repeat: repeat-y;
+	font-family: Tahoma;
+	height: 100%;
+	width: 100%;
+    padding-left: 0px;
+    padding-top: 5px;
+	/* white-space: pre; CSS2 */
+    /* white-space: -moz-pre-wrap;  Mozilla */
+    /* white-space: -hp-pre-wrap;  HP printers */
+    /* white-space: -o-pre-wrap;  Opera 7 */
+    /* white-space: -pre-wrap;  Opera 4-6 */
+    /* white-space: pre-wrap;  CSS 2.1 */
+    /* white-space: pre-line;  CSS 3 (and 2.1 as well, actually) */
+    word-wrap: break-word; /* IE */
+    margin: 0px;
+    margin-right: 12px;
+    line-height:1.8;
+	}
+	img { border:0;margin-top:-3px;margin-bottom:-3px; }
+</STYLE>
+<script type="text/javascript">
+//warning: if the domain is different then what is set here, then page may give unexpected results.
+var userAgent = navigator.userAgent.toLowerCase();
+var isIE = (userAgent.indexOf('msie') != -1);
+function usernickclick(cnick) {
+	window.parent.selectNickInNicklist(cnick);
+}
+function subacceptWhisper(whspid, sender)
+{
+    window.parent.acceptWhisper(whspid, sender);
+    window.parent.ScrollFix();
+}
+
+function subdeclineWhisper(whspid, sender)
+{
+    window.parent.declineWhisper(whspid, sender);
+    window.parent.ScrollFix();
+}
+
+function subacceptWhispertab(whsptid, sender)
+{
+    window.parent.acceptWhispertab(whsptid, sender);
+    window.parent.ScrollFix();
+}
+
+function subdeclineWhispertab(whsptid, sender)
+{
+    window.parent.declineWhispertab(whsptid, sender);
+    window.parent.ScrollFix();
+}
+
+function fnKeyInterupt(e)
+{
+    if (e == null) e = window.event;
+    if (e.keyCode == 8)
+	{
+	    e.cancelBubble = true;
+        e.returnValue = false;
+		return false;
+	}
+}
+
+if (typeof(window.event) == 'undefined')
+{
+    document.onkeypress = fnKeyInterupt;
+}
+else
+{
+    document.onkeydown = fnKeyInterupt;
+}
+
+	
+
+
+</script>
+</HEAD>
+<body id="cpbody">
+</body>
+</html>
