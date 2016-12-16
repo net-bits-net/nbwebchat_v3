@@ -7,6 +7,6 @@ Net-Bits.Net web-chat (NBWebchat v3) client is a feature rich open source live w
 # Working Directories Strucuture
 Git file is not working files structure, following is asp.net/IIS directories and files structure.
 #### Webchat folder:
-![web chat folder](https://raw.githubusercontent.com/net-bits-net/nbwebchat_v3/master/HelpDocs/webchat_folder.png)
+![web chat folder](https://github.com/net-bits-net/nbwebchat_v3/raw/master/HelpDocs/webchat_folder.png)
 #### Webchat page view folder: 
-![web chat page view](https://raw.githubusercontent.com/net-bits-net/nbwebchat_v3/master/HelpDocs/webchat_view_file.png)
+![web chat page view](https://github.com/net-bits-net/nbwebchat_v3/raw/master/HelpDocs/webchat_view_file.png)
