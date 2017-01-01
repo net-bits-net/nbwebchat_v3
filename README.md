@@ -1,6 +1,6 @@
-# NBWebchat v3 - Live Group Chat For The Web
+# NB Webchat v3 - Live Web Chat For IRCwx Server/Protocol
 
-Net-Bits.Net web-chat (NBWebchat v3) client is a feature rich open source live web-chat client based on ircWx protocol. Completely cross platform (works on Windows, MAC, and Linux and their popular browsers), and secure. Its main features include multi-language (Unicode) support, formatting, user preference settings, whispers (private messaging) in, ignore/unignore, tagging, status icons, profile icons, and many more features.
+Net-Bits.Net web-chat (NB Webchat v3) client is a feature rich open source live web-chat client based on ircWx protocol. Completely cross platform (works on Windows, MAC, and Linux and their popular browsers), and secure. Its main features include multi-language (Unicode) support, formatting, user preference settings, whispers (private messaging) in, ignore/unignore, tagging, status icons, profile icons, and many more features.
 
 **Project Lead:** Mike McAlpin ( https://github.com/err0r007 )
 
