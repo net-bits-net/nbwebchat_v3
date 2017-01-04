@@ -4,6 +4,8 @@ Net-Bits.Net web-chat (NB Webchat v3) client is a feature rich open source live 
 
 **Project Lead:** Mike McAlpin ( https://github.com/err0r007 )
 
+Working demo: http://www.ircwx.com/c/?cn=ircWx%5cbCafe
+
 # Working Directories Strucuture
 Git file is not working files structure, following is asp.net/IIS directories and files structure.
 #### Webchat folder:
