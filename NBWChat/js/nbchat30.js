@@ -4,10 +4,6 @@ var userAgent = navigator.userAgent.toLowerCase();
 var isIE = (userAgent.indexOf('msie') !== -1);
 var isFF = (userAgent.indexOf('firefox') !== -1);
 var isWK = (userAgent.indexOf('webkit') !== -1);
-//Update(01-Oct-2014): Update for date line. --Mike
-var monthNames = ["January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
-];
 var dtTmssaved = false;
 //Update(01-Oct-2014): protection against time and version reply flooding. --Mike
 var waittime = false;
@@ -34,6 +30,7 @@ else {
 	sURIFUIDIR2 = "http://" + window.location.hostname + hostport + sTPN + sFUIDIR2;
 }
 var aaTagged = new Array();
+var staffIgnore = ["^Bot_Ignore"];
 var sMsg = '';
 var sIcoDir = 'images/listicons/';
 var sIcoDir2 = 'images/listicons/';
@@ -116,6 +113,10 @@ var imgBtnMenubg = sFUIDIR + '/images/menubg.png';
 // Update Aug 12 2015 Extra Settings
 var bInviteOn = false;
 var bPiconsOn = false;
+var bUnoticeOn = false;
+//Update Jan 18 2017 Add URL Management
+var bUrlOn = false;
+var bSafeUrlCheckOn = false;
 function fnPreloadUIImages() {
 	MM_preloadImages(    	
 		imgBtnProfileDisabled, 
@@ -360,7 +361,6 @@ function UnescapeSpecialChars(str) {
 function ParseTextMessage(str) {
 	return (bEmotsOff == true) ? ParseTextMessage2(str, false) : ParseTextMessage2(str, true);
 }
-
 function FixHexColorIfHexCode(str_color) {
 	if (str_color === 'undefined') return '';
 
@@ -374,7 +374,6 @@ function FixHexColorIfHexCode(str_color) {
 
 	return str_color;
 }
-
 function ParseTextMessage2(str, rendEmots) {
 	//ToDo: optimizations and html tag striping
 	var regret = null, bbcoderet = null;
@@ -411,10 +410,10 @@ function ParseTextMessage2(str, rendEmots) {
 								strsubtmp += 'font-family:' + bbcoderet[0].substr(3);
 							}
 							else if (bbcoderet[0].indexOf("bgco:") == 0) {
-								strsubtmp += 'background-color:' + FixHexColorIfHexCode(bbcoderet[0].substr(5));
+							    strsubtmp += 'background-color:' + FixHexColorIfHexCode(bbcoderet[0].substr(5));
 							}
 							else if (bbcoderet[0].indexOf("co:") == 0) {
-								strsubtmp += 'color:' + FixHexColorIfHexCode(bbcoderet[0].substr(3));
+							    strsubtmp += 'color:' + FixHexColorIfHexCode(bbcoderet[0].substr(3));
 							}
 							else if (bbcoderet[0].indexOf("b;") == 0) {
 								strsubtmp += 'font-weight:bold;';
@@ -452,7 +451,12 @@ function ParseTextMessage2(str, rendEmots) {
 				//edit end
 			}
 			else if (regret[0].search(paturl) != -1) {
-				strtmp += str.slice(pos1, regret.index) + "<a href='" + regret[0] + "' target='_blank'>" + regret[0] + "</a>";
+				if (bUrlOn == false) {
+					strtmp += str.slice(pos1, regret.index) + "<a href='" + regret[0] + "' target='_blank'>" + regret[0] + "</a>";
+				}
+				else {
+					strtmp += str.slice(pos1, regret.index) + "<span style=\"color:blue;\">-URLs Blocked in Options-</span>";
+				}
 				pos1 = re.lastIndex;
 			}
 			else {
@@ -463,8 +467,7 @@ function ParseTextMessage2(str, rendEmots) {
 					//checkdoline = regret[0].indexOf("doline");
 					//if (regret[0] != undefined && checkdoline == -1) {
 					if (regret[0] != undefined) {
-						strtmp += str.slice(pos1, regret.index) + '<img class="emotestyle" src="' + sEmotsDir + regret[0] + '" border="0" />';
-						// strtmp += str.slice(pos1, regret.index) + '<img src="' + sEmotsDir + regret[0] + '" border="0" />';
+                    	strtmp += str.slice(pos1, regret.index) + '<img class="emotestyle" src="' + sEmotsDir + regret[0] + '" border="0" />';
 						pos1 = re.lastIndex;
 					}
 				}
@@ -601,7 +604,7 @@ function clearChatPane() {
 }
 function IsSendable() {
 	if ((Is_m_Mode == true || Is_x_Mode == true) && (ouserMe.ilevel < IsHelpOp && ouserMe.voice == false)) {
-		fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: Cannot send message. You need (+v) to send message in this room.</span></span>");
+		fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorsendable + "</span></span>");
 		return false;
 	}
 	else return true;
@@ -619,11 +622,11 @@ function fnCPAppendText() {
 
 function IsWWSendable(puserTo, wnd) {
 	if ((Modes[0].indexOf("w") >= 0 || Is_m_Mode == true || Is_x_Mode == true) && (ouserMe.ilevel < IsHelpOp && (ouserMe.voice == false || puserTo.voice == false) && puserTo.ilevel < IsHelpOp)) {
-		wnd.fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: Cannot send message, whispering or messaging is turned off (+m/w/x).</span></span>");
+		wnd.fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorWWsendable + "</span></span>");
 		return false;
 	}
 	else if (Modes[0].indexOf("W") >= 0 && (ouserMe.nick.charAt(0) == ">" || puserTo.nick.charAt(0) == ">") && (ouserMe.ilevel < IsHelpOp && puserTo.ilevel < IsHelpOp)) {
-		wnd.fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: Cannot send message, guest whispering is turned off (+W).</span></span>");
+		wnd.fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + errorWWsendableb + "</span></span>");
 		return false;
 	}
 	else return true;
@@ -658,18 +661,18 @@ function fnSend(str) {
 function fnConnect() {
 	if (IsGuestInfoSet) flashObj.sckConnect();
 	else onFlashSocketLoad();
-	sendTostatus('<span class="status-connected">Connected</span>');    
+	sendTostatus('<span class="status-connected">' + langr.l_connected + '</span>');    
 }
 
 function fnReconnect() {
 	flashObj.PSetReconnectTimer();
-	sendTostatus('<span class="status-reconnect">Re-connecting</span>');
+	sendTostatus('<span class="status-reconnect">' + langr.l_reconnecting + '</span>');
 }
 
 function fnDisconnect() {
 	flashObj.sckDisconnect();
-	fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Disconnected.</span></span>");
-	sendTostatus('<span class="status-disconnect">Disconnected</span>');
+	fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_disconnected + "</span></span>");
+	sendTostatus('<span class="status-disconnect">' + langr.l_disconnected + '</span>');
 	onClearUserList();
 	UpdateUserCount();
 }
@@ -717,14 +720,14 @@ function ProcessInterUserCommand(sCmd) {
 		case "ENABLEFW":
 			{
 				FlashWindowEnabled = true;
-				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " <span class='msgfrmt2'>FlashWindow enabled.</span></span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " <span class='msgfrmt2'>" + langr.l_flashwindowenabled + "</span></span></span>");
 			}
 			break;
 
 		case "DISABLEFW":
 			{
 				FlashWindowEnabled = false;
-				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt2'>FlashWindow disabled.</span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt2'>" + langr.l_flashwindowdisabled + "</span></span>");
 			}
 			break;
 
@@ -736,7 +739,7 @@ function ProcessInterUserCommand(sCmd) {
 
 		case "SHOWGUESTPASSSTORED":
 			{
-				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt2'>Guest password stored: " + flashObj.GetGuestuserPass() + "</span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt2'>" + langr.l_guestpasswordstored + " " + flashObj.GetGuestuserPass() + "</span></span>");
 			}
 			break;
 		case "SAVEGUESTPASS":
@@ -745,10 +748,10 @@ function ProcessInterUserCommand(sCmd) {
 				if (strNewGuestPass.length > 0) {
 					flashObj.SaveGuestuserPass(strNewGuestPass);
 					strGuestPass = flashObj.GetGuestuserPass();
-					fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt2'>*Guest password stored: " + strGuestPass + "</span></span>");
+					fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt2'>" + langr.l_guestpasswordstored + " " + strGuestPass + "</span></span>");
 				}
 				else {
-					fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: guest password has forbidden character(s).</span></span>");
+					fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorguestpass + "</span></span>");
 				}
 			}
 			break;
@@ -769,7 +772,7 @@ function ProcessInterUserCommand(sCmd) {
 				}
 			}
 			else {
-				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: you must be owner or superowner to use this command.</span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorsolevel + "</span></span>");
 			}
 
 			break;
@@ -787,7 +790,7 @@ function ProcessInterUserCommand(sCmd) {
 				}
 			}
 			else {
-				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: only users with level host or above can use this command.</span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorhlevel + "</span></span>");
 			}
 			break;
 
@@ -804,7 +807,7 @@ function ProcessInterUserCommand(sCmd) {
 				}
 			}
 			else {
-				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: only users with level host or above can use this command.</span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorhlevel + "</span></span>");
 			}
 			break;
 
@@ -820,7 +823,7 @@ function ProcessInterUserCommand(sCmd) {
 				}
 			}
 			else {
-				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: only users with level host or above can use this command.</span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorhlevel + "</span></span>");
 			}
 			break;
 
@@ -836,7 +839,7 @@ function ProcessInterUserCommand(sCmd) {
 				}
 			}
 			else {
-				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: only users with level host or above can use this command.</span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorhlevel + "</span></span>");
 			}
 			break;
 
@@ -859,43 +862,54 @@ function ProcessInterUserCommand(sCmd) {
 		case "GUESTBAN":
 			if (ouserMe.ilevel >= IsSuperOwner ) {
 				flashObj.sendToServer("ACCESS " + m_sChan + " ADD DENY >* 0 : GuestBan");
-				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Guests are now banned!<span class='errortype1'></span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_guestnowbanned + "<span class='errortype1'></span></span>");
 			}
 			else {
-				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: only users with level superowner can use this command.</span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorslevel + "</span></span>");
 			}
 			break;
 			
 		case "GUESTUNBAN":
 			if (ouserMe.ilevel >= IsSuperOwner ) {
 				flashObj.sendToServer("ACCESS " + m_sChan + " DELETE DENY >*");
-				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Guest ban has been removed!<span class='errortype1'></span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_guestbanremoved + "<span class='errortype1'></span></span>");
 			}
 			else {
-				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: only users with level superowner can use this command.</span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorslevel + "</span></span>");
 			}
 			break;
 		
 		case "GUESTMIRCBAN":
 			if (ouserMe.ilevel >= IsSuperOwner ) {
 				flashObj.sendToServer("ACCESS " + m_sChan + " ADD DENY >*1_* 0 : mIRC GuestBan");
-				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>mIRC Guests are now banned!<span class='errortype1'></span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_mircguestnowbanned + "<span class='errortype1'></span></span>");
 			}
 			else {
-				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: only users with level superowner can use this command.</span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorslevel + "</span></span>");
 			}
 			break;
 			
 		case "GUESTMIRCUNBAN":
 			if (ouserMe.ilevel >= IsSuperOwner ) {
 				flashObj.sendToServer("ACCESS " + m_sChan + " DELETE DENY >*1_*");
-				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>mIRC Guest ban has been removed!<span class='errortype1'></span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_mircgueatbanremoved + "<span class='errortype1'></span></span>");
 			}
 			else {
-				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: only users with level superowner can use this command.</span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorslevel + "</span></span>");
 			}
 			break;    
-
+		
+		case "INVITE":
+            if (ouserMe.ilevel >= IsHost) {
+            	var inviteName = sCmd.split(" ").slice(1).join(" ");
+            	flashObj.sendToServer("INVITE " + inviteName + " " + m_sChan);
+            	fnAppendText("<span class='msgfrmtparent'><span class='invite'>" + langr.l_youareinvited_a + " " + inviteName + " " + langr.l_youareinvited_b + "</span></span>");
+            }
+            else {
+                fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorhlevel + "</span></span>");
+            }
+            break;
+		
 		case "?":
 			listCommands();
 			break;
@@ -913,12 +927,12 @@ function ProcessInterUserCommand(sCmd) {
 			alert(ChatPane.document.body.innerHTML);
 			break;
 		case "VERSION":
-			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt2'>Version: " + sVersion + ".</span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt2'>" + langr.l_version + " " + sVersion + ".</span></span>");
 			break;
 		case "HOP":
 			window.location.reload();
 			break;
-	
+		
 		case "FIXSCROLL":
 			ScrollFix();
 			break;
@@ -939,12 +953,13 @@ function ProcessInterUserCommand(sCmd) {
 		// Mike Addon 07/30/16
 		case "PROPS":
 			OpenPropsOptionsWnd();			
-			break;	
+			break;
+			
 		// Mike Addon 04/05/16
 		case "MODES":
 			OpenModesOptionsWnd();			
-			break;	
-
+			break;		
+		
 		case "RAW":
 			flashObj.sendToServer(sCmd.split(" ").slice(1).join(" "));
 			break;
@@ -954,7 +969,7 @@ function ProcessInterUserCommand(sCmd) {
 			break;
 
 		default:
-			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: Command \"" + sCmd.split(" ", 1)[0] + "\" is not implemented in this client.</span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorcommand_a + " \"" + sCmd.split(" ", 1)[0] + "\" " + langr.l_errorcommand_b + "</span></span>");
 			return false;
 	}
 
@@ -962,7 +977,7 @@ function ProcessInterUserCommand(sCmd) {
 }
 
 function listCommands() {
-	fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt2'>Commandline commands supported in this client: " + sanitizeHtml("FixScroll, Reconnect, Disconnect, Hop, Clear, Away [<Away Message>], Unaway, Nick <Nickname>, DebugPrint, ShowGuestpassStored, SaveGuestpass <Guest Password>, Kick <kick message>, Ban15m <ban message>, Ban1h <ban message>, Ban24h <ban message>, Guestban, Guestunban, Guestmircban, Guestmircunban, TOPIC <topic message>, WELCOME <welcome message>, +/-PROTECTIONMODE") + ". Commands must start with /</span></span>");
+	fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt2'>" + langr.l_commandlinessupported + " " + sanitizeHtml("FixScroll, Reconnect, Disconnect, Hop, Clear, Away [<Away Message>], Unaway, Nick <Nickname>, DebugPrint, ShowGuestpassStored, SaveGuestpass <Guest Password>, Kick <kick message>, Ban15m <ban message>, Ban1h <ban message>, Ban24h <ban message>, Guestban, Guestunban, Guestmircban, Guestmircunban, INVITE <username>, TOPIC <topic message>, WELCOME <welcome message>, +/-PROTECTIONMODE") + ". Commands must start with /</span></span>");
 	closeAllMenus();
 }
 function updateAwayButton(away) {
@@ -1025,17 +1040,17 @@ function fnNickNameSanitize(nick) {
 }
 
 function getUserLabel(nick) {
-	return (nick.charAt(0) == ">") ? "Guest_" + fnNickNameSanitize(nick.substr(1)) : fnNickNameSanitize(nick);
+	return (nick.charAt(0) == ">") ? langr.l_guestprefix + fnNickNameSanitize(nick.substr(1)) : fnNickNameSanitize(nick);
 }
 
 function getUserLabel2(puser) {
-	var tnick = (puser.nick.charAt(0) == ">") ? "Guest_" + fnNickNameSanitize(puser.nick.substr(1)) : fnNickNameSanitize(puser.nick);
+	var tnick = (puser.nick.charAt(0) == ">") ? langr.l_guestprefix + fnNickNameSanitize(puser.nick.substr(1)) : fnNickNameSanitize(puser.nick);
 
-	if ((puser.ilevel & IsStaff) == IsStaff) tnick += ' ' + '(Staff)';
-	else if ((puser.ilevel & IsSuperOwner) == IsSuperOwner) tnick += ' ' + '(Superowner)';
-	else if ((puser.ilevel & IsOwner) == IsOwner) tnick += ' ' + '(Owner)';
-	else if ((puser.ilevel & IsHost) == IsHost) tnick += ' ' + '(Host)';
-	else if ((puser.ilevel & IsHelpOp) == IsHelpOp) tnick += ' ' + '(Helpop)';
+	if ((puser.ilevel & IsStaff) == IsStaff) tnick += ' ' + '(' + langr.l_levelprefixstaff + ')';
+	else if ((puser.ilevel & IsSuperOwner) == IsSuperOwner) tnick += ' ' + '(' + langr.l_levelprefixsuperowner + ')';
+	else if ((puser.ilevel & IsOwner) == IsOwner) tnick += ' ' + '(' + langr.l_levelprefixowner + ')';
+	else if ((puser.ilevel & IsHost) == IsHost) tnick += ' ' + '(' + langr.l_levelprefixhost + ')';
+	else if ((puser.ilevel & IsHelpOp) == IsHelpOp) tnick += ' ' + '(' + langr.l_levelprefixhelpop + ')';
 	return tnick;
 }
 function fnGetIgnore(puser) {
@@ -1172,8 +1187,7 @@ function updateUser(oUserChanges) {
 }
 
 function UpdateUserCount() {
-	//alert('UpdateUserCount()');
-	ptxNumberOfUser.innerHTML = (olvUsers.length() + 1) + ' users chatting';
+	ptxNumberOfUser.innerHTML = (olvUsers.length() + 1) + ' ' + langr.l_userschatting;
 }
 
 function UpdateLblModes() {
@@ -1297,8 +1311,13 @@ function loadOptions() {
 		else { bPiconsOn = false; }
 		if (typeof (EOptions.bUnoticeOn) == 'boolean') { bUnoticeOn = EOptions.bUnoticeOn; }
 		else { bUnoticeOn = false; }
+		if (typeof (EOptions.bUrlOn) == 'boolean') { bUrlOn = EOptions.bUrlOn; }
+		else { bUrlOn = false; }
+		if (typeof (EOptions.bSafeUrlCheckOn) == 'boolean') { bSafeUrlCheckOn = EOptions.bSafeUrlCheckOn; }
+		else { bSafeUrlCheckOn = false; }
+		
 	}
-	else { bInviteOn = false; bPiconsOn = false; bUnoticeOn = false; }
+	else { bInviteOn = false; bPiconsOn = false; bUnoticeOn = false; bUrlOn = false; bSafeUrlCheckOn = false; }
 	//alert(JSON.stringify(EOptions));
 	//sound are played in flash object, so they won't load here
 }
@@ -1329,6 +1348,8 @@ function saveOptions(pOptions) {
 	bInviteOn = pOptions.bInviteOn;
 	bPiconsOn = pOptions.bPiconsOn;
 	bUnoticeOn = pOptions.bUnoticeOn;
+	bUrlOn = pOptions.bUrlOn;
+	bSafeUrlCheckOn = pOptions.bSafeUrlCheckOn;
 	//
 	var COptions = new Object();
 	// Update Aug 12 2015 Extra Settings
@@ -1358,7 +1379,10 @@ function saveOptions(pOptions) {
 	// Update Aug 12 2015 Extra Settings
 	EOptions.bInviteOn = pOptions.bInviteOn;
 	EOptions.bPiconsOn = pOptions.bPiconsOn;
-	EOptions.bUnoticeOn = pOptions.bUnoticeOn;      
+	EOptions.bUnoticeOn = pOptions.bUnoticeOn;
+	EOptions.bUrlOn = pOptions.bUrlOn;
+	EOptions.bSafeUrlCheckOn = pOptions.bSafeUrlCheckOn;
+	     
 	if (COptions.sDspFrmt) {
 		var fontinfo = COptions.sDspFrmt.split(";"); 
 		for (f = 0; f < fontinfo.length; f++) {
@@ -1566,15 +1590,14 @@ function onAddUser(ouser) {
 
 function onJoin(ujoined, chan) {
 	var plvi = olvUsers.addItem(ujoined);
-
 	fnProcessUserIdentIngnore(plvi);
-
 	if (bDspArrivals != false) {
 		var usrname = (bShowIdentOnJoin) ? getUserLabel(ujoined.nick) + "!" + ujoined.fullident + "@*" : getUserLabel(ujoined.nick);
-		fnAppendText('<span class="msgfrmtparent"><span class="msgfrmt4">' + cmdIndChar + ' <a class="usernickclick" style="text-decoration:none;" href="javascript:;" onclick="usernickclick(\'' + ujoined.nick + '\');">' + usrname + '</a> has joined the conversation.</span></span>');
+		// Update Dec 3 2016 Superowner show ident Mike
+		if (ouserMe.ilevel >= IsSuperOwner ) { fnAppendText('<span class="msgfrmtparent"><span class="msgfrmt4">' + cmdIndChar + ' <a class="usernickclick" style="text-decoration:none;" href="javascript:;" onclick="usernickclick(\'' + ujoined.nick + '\');">' + usrname + '</a> ' + langr.l_userhasjoined + ' Passport: ' + ujoined.ident + '</span></span>'); }
+		else { fnAppendText('<span class="msgfrmtparent"><span class="msgfrmt4">' + cmdIndChar + ' <a class="usernickclick" style="text-decoration:none;" href="javascript:;" onclick="usernickclick(\'' + ujoined.nick + '\');">' + usrname + '</a> ' + langr.l_userhasjoined + '</span></span>'); }
 	}
 	UpdateUserCount();
-
 }
 
 function onRemoveUserByNick(sNick) {
@@ -1582,7 +1605,15 @@ function onRemoveUserByNick(sNick) {
 	//debugOutput(sNick + ' : ' + pUser.nick);
 	var pUser = olvUsers.removeItemByName2(sNick);
 	if (pUser != null) {
-		if (bDspDeparts != false) fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((pUser.tagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(pUser.nick) + "</span>") : getUserLabel(pUser.nick)) + " has left the conversation.</span></span>");
+		// Update Dec 3 2016 Superowner show ident Mike
+		if (bDspDeparts != false) {
+        	if (ouserMe.ilevel >= IsSuperOwner ) { 
+        		if (pUser.ident != null) { var passportshow = "Passport: " + pUser.ident; }
+        		else { var passportshow = ''; }
+				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((pUser.tagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(pUser.nick) + "</span>") : getUserLabel(pUser.nick)) + " " + langr.l_userhasleft + " " + passportshow + "</span></span>"); 
+			}
+			else { fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((pUser.tagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(pUser.nick) + "</span>") : getUserLabel(pUser.nick)) + " " + langr.l_userhasleft + "</span></span>"); } 
+        }
 		removeTag(sNick);
 		EndTabs(sNick);
 		UpdateUserCount();
@@ -1601,7 +1632,7 @@ function onJoinMe(oluser, sChan) {
 
 	UpdateChatRoomText();
 
-	fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='msgfrmt4me'> You have joined the conversation.</span></span></span>");
+	fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='msgfrmt4me'> " + langr.l_uhavejoined + "</span></span></span>");
 
 	UpdateUserCount();
 }
@@ -1622,18 +1653,18 @@ function onProp(sNickFrom, sChan, sType, sMessage) {
 	//prop returns, what if client disconnects?
 	switch (sType.toUpperCase()) {
 		case "TOPIC":
-			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='pretopiclabel'> " + getUserLabel(sNickFrom) + " changes topic to: </span><span class='topic'>" + ParseTextMessage(sMessage) + "</span></span>");
-			sendTostatus("<span class='status-prop'>" + getUserLabel(sNickFrom) + " changes topic to: " + ParseTextMessage(sMessage) + "</span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='pretopiclabel'> " + getUserLabel(sNickFrom) + " " + langr.l_changestopic + " </span><span class='topic'>" + ParseTextMessage(sMessage) + "</span></span>");
+			sendTostatus("<span class='status-prop'>" + getUserLabel(sNickFrom) + " " + langr.l_changestopic + " " + ParseTextMessage(sMessage) + "</span>");
 			break;
 
 		case "ONJOIN":
-			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='preonjoinlabel'> " + getUserLabel(sNickFrom) + " changes welcome message to: </span><span class='onjoin'>" + ParseTextMessage(sMessage) + "</span></span>");
-			sendTostatus("<span class='status-prop'>" + getUserLabel(sNickFrom) + " changes welcome message to: " + ParseTextMessage(sMessage) + "</span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='preonjoinlabel'> " + getUserLabel(sNickFrom) + " " + langr.l_changeswelcome + " </span><span class='onjoin'>" + ParseTextMessage(sMessage) + "</span></span>");
+			sendTostatus("<span class='status-prop'>" + getUserLabel(sNickFrom) + " " + langr.l_changeswelcome + " " + ParseTextMessage(sMessage) + "</span>");
 			break;
 
 		case "LANGUAGE2":
-			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + getUserLabel(sNickFrom) + " changes display language to: " + sMessage + "</span></span>");
-			sendTostatus("<span class='status-prop'>" + getUserLabel(sNickFrom) + " changes display language to: " + ParseTextMessage(sMessage) + "</span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + getUserLabel(sNickFrom) + " " + langr.l_changesdisplaylang + " " + sMessage + "</span></span>");
+			sendTostatus("<span class='status-prop'>" + getUserLabel(sNickFrom) + " " + langr.l_changesdisplaylang + " " + ParseTextMessage(sMessage) + "</span>");
 			break;
 	}
 }
@@ -1641,22 +1672,22 @@ function onProp(sNickFrom, sChan, sType, sMessage) {
 function onNotice(sNickFrom, sChan, sMessage) {
 	if (sMessage == XmlNullChar) sMessage = '';
 
-	fnAppendText("<span class='msgfrmt5'><span class='titlenotice'>" + ((aaTagged[sNickFrom] == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : getUserLabel(sNickFrom)) + " (notice):</span><span class='msgnotice'>" + ParseTextMessage(sMessage) + "</span></span>");
+	fnAppendText("<span class='msgfrmt5'><span class='titlenotice'>" + ((aaTagged[sNickFrom] == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : getUserLabel(sNickFrom)) + " (" + langr.l_notice + "):</span><span class='msgnotice'>" + ParseTextMessage(sMessage) + "</span></span>");
 }
 
 function onNoticePrivate(sNickFrom, sChan, sMessage) {
     if (sMessage == XmlNullChar) sMessage = '';
     //ToDo:
     var plvi = olvUsers.getItemByName(sNickFrom);
-    if (plvi.pUser.ignore == false || plvi.pUser.ilevel > IsSuperOwner) {
+    if ((plvi.pUser.ignore == false) || (plvi.pUser.ilevel > IsSuperOwner && staffIgnore.indexOf(pLVI.pUser.nick) <= -1)) {
 		if (sMessage.charAt(0) != "\2")	{           
 			//Update(11-Aug-2016): parsetext2 to remove emotes. --Mike
 			if (bUnoticeOn == false) {
-				fnAppendText("<div style='padding-left:30px;'><span class='msgfrmt5'><span class='titlenoticepr'>" + ((aaTagged[sNickFrom] == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : getUserLabel(sNickFrom)) + " (notice):</span> <span class='msgnoticepr'>" + ParseTextMessage2(sMessage, false) + "</span></span></div>");
+				fnAppendText("<div style='padding-left:30px;'><span class='msgfrmt5'><span class='titlenoticepr'>" + ((aaTagged[sNickFrom] == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : getUserLabel(sNickFrom)) + " (" + langr.l_notice + "):</span> <span class='msgnoticepr'>" + ParseTextMessage2(sMessage, false) + "</span></span></div>");
         	}
         	else {
         		if (!waitnotice) {
-        			flashObj.sendToServer("NOTICE " + sChan + " " + sNickFrom + " : " + ouserMe.nick + " has his/her notices turned off.");
+        			flashObj.sendToServer("NOTICE " + sChan + " " + sNickFrom + " : " + ouserMe.nick + " " + langr.l_noticesoff);
         			waitnotice = true;
 	            	setTimeout(function() {
 	            	waitnotice = false;
@@ -1669,7 +1700,7 @@ function onNoticePrivate(sNickFrom, sChan, sMessage) {
 			if (!waittimereply) {
 				var sRpl = sMessage.substr(sMessage.indexOf("\2", 1) + 1);
 				sRpl = sRpl.substring(0, 50);
-				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + getUserLabel(sNickFrom) + "'s local time: " + sRpl + "</span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + getUserLabel(sNickFrom) + "'s " + langr.l_localtime + " " + sRpl + "</span></span>");
 	        	waittimereply = true;
 	            setTimeout(function() {
 	            	waittimereply = false;
@@ -1681,15 +1712,15 @@ function onNoticePrivate(sNickFrom, sChan, sMessage) {
 }
 
 function onNoticeChanBroadcast(sNickFrom, sChan, sMessage) {
-	if (sMessage == XmlNullChar) sMessage = '';
-	fnAppendText("<span class='broadcasttitlecr'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_owner"] + "' border='0' class='lvuitemico' />&nbsp;Chat Room Broadcast:</span><br /><span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span>");
-	sendTostatus("<span class='broadcasttitlecr'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_owner"] + "' border='0' class='lvuitemico' />&nbsp;Chat Room Broadcast:</span><br /><span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span>");
+    if (sMessage == XmlNullChar) sMessage = '';
+    fnAppendText("<div class='broadcastmessage'><span class='broadcasttitlecr'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_owner"] + "' border='0' class='lvuitemico' />&nbsp;Chat Room Broadcast:</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
+	sendTostatus("<div class='broadcastmessage'><span class='broadcasttitlecr'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_owner"] + "' border='0' class='lvuitemico' />&nbsp;Chat Room Broadcast:</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
 }
 
 function onNoticeServerBroadcast(sNickFrom, sMessage) {
-	if (sMessage == XmlNullChar) sMessage = '';
-	fnAppendText("<span class='broadcasttitlesrv'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_staff"] + "' border='0' class='lvuitemico' />&nbsp;Server Broadcast:</span><br /><span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span>");
-	sendTostatus("<span class='broadcasttitlesrv'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_staff"] + "' border='0' class='lvuitemico' />&nbsp;Server Broadcast:</span><br /><span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span>");
+    if (sMessage == XmlNullChar) sMessage = '';
+    fnAppendText("<div class='broadcastmessage'><span class='broadcasttitlesrv'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_staff"] + "' border='0' class='lvuitemico' />&nbsp;Server Broadcast:</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
+	sendTostatus("<div class='broadcastmessage'><span class='broadcasttitlesrv'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_staff"] + "' border='0' class='lvuitemico' />&nbsp;Server Broadcast:</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
 }
 
 function onNoticeServerMessage(sMessage) {
@@ -1725,7 +1756,7 @@ function onPrivmsg(sNickFrom, sChan, sMessage) {
 	if (sMessage == XmlNullChar) sMessage = '';
 	var pLVI = olvUsers.getItemByName(sNickFrom);
 	var str = new String();
-	if (pLVI.pUser.ignore == false || pLVI.pUser.ilevel > IsSuperOwner) {
+	if ((pLVI.pUser.ignore == false) || (pLVI.pUser.ilevel > IsSuperOwner && staffIgnore.indexOf(pLVI.pUser.nick) <= -1)) {
 		if (sMessage.indexOf("\1") == 0) {
 			//str.split(
 			var pos1 = sMessage.indexOf(" ", 1);
@@ -1819,10 +1850,10 @@ function on301(sNickFrom, sMessage) {
 		if (plvi.pUser != undefined) {
 			plvi.pUser.awaymsg = sMessage;
 			if (sMessage.length > 0 && (plvi.pUser.ignore == false || plvi.pUser.ilevel > IsSuperOwner)) {
-				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((plvi.pUser.tagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : getUserLabel(sNickFrom)) + " is away. Reason: " + ParseTextMessage(sMessage) + "</span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((plvi.pUser.tagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : getUserLabel(sNickFrom)) + " " + langr.l_isaway_a + " " + langr.l_isaway_b + " " + ParseTextMessage(sMessage) + "</span></span>");
 			}
 			else {
-				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((plvi.pUser.tagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : getUserLabel(sNickFrom)) + " is away.</span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((plvi.pUser.tagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : getUserLabel(sNickFrom)) + " " + langr.l_isaway_a + "</span></span>");
 			}
 			//flashObj.playTagSnd();
 		}
@@ -1830,10 +1861,10 @@ function on301(sNickFrom, sMessage) {
 	else {
 		if (sMessage.length > 0) {
 			ouserMe.awaymsg = sMessage;
-			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='msgfrmt4me'> You are marked as being away. Away message: " + ParseTextMessage(sMessage) + "</span></span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='msgfrmt4me'> " + langr.l_umarkedaway_a + " " + langr.l_umarkedaway_b + " " + ParseTextMessage(sMessage) + "</span></span></span>");
 		}
 		else {
-			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4me'>" + cmdIndChar + " You are been marked as being away.</span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4me'>" + cmdIndChar + " " + langr.l_umarkedaway_a + "</span></span>");
 		}
 	}
 }
@@ -1843,7 +1874,7 @@ function on302(sNickFrom, sMessage) {
 	if (sMessage == XmlNullChar) sMessage = '';
 	UpdateIdent(sNickFrom, sMessage);
 }
-// Mike Update to Ident ouserMe
+
 function UpdateIdent(sNickFrom, sUserHost) {
     var istrtloc = sUserHost.indexOf("=") + 1;
     var iendloc = sUserHost.indexOf("@");
@@ -1897,13 +1928,15 @@ function on822Chan(sNickFrom, sChan, sMessage) {
 			var bTagged = oUser.tagged;
 			oUser.awaymsg = sMessage;
 			if (bDspStatusChg != false) {
-				if (sMessage.length > 0 && (oUser.ignore == false || oUser.ilevel > IsSuperOwner)) {
-					fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((bTagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : getUserLabel(sNickFrom)) + " went away. Reason: " + ParseTextMessage(sMessage) + "</span></span>");
+				if (oUser.ignore == false || oUser.ilevel > IsSuperOwner) {
+               		if (sMessage.length > 0) {
+						fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((bTagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : getUserLabel(sNickFrom)) + " " + langr.l_wentaway_a + " " + langr.l_wentaway_b + " " + ParseTextMessage(sMessage) + "</span></span>");
+					}
+					else {
+						fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((bTagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : getUserLabel(sNickFrom)) + " " + langr.l_wentaway_a + "</span></span>");
+					}
+					//flashObj.playTagSnd();
 				}
-				else {
-					fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((bTagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : getUserLabel(sNickFrom)) + " went away.</span></span>");
-				}
-				//flashObj.playTagSnd();
 			}
 		}
 	}
@@ -1914,10 +1947,10 @@ function on822Chan(sNickFrom, sChan, sMessage) {
 		updateUserIcon(ouserMe, puicoMe, plbMe, nothing);
 		if (sMessage.length > 0) {
 			ouserMe.awaymsg = sMessage;
-			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='msgfrmt4me'> You have been marked as being away. Away message: " + ParseTextMessage(sMessage) + "</span></span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='msgfrmt4me'> " + langr.l_umarkedaway_a + " " + langr.l_umarkedaway_b + " " + ParseTextMessage(sMessage) + "</span></span></span>");
 		}
 		else {
-			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='msgfrmt4me'> You have been marked as being away.</span></span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='msgfrmt4me'> " + langr.l_umarkedaway_a + "</span></span></span>");
 		}
 	}
 }
@@ -1934,10 +1967,10 @@ function on822Pr(sNickFrom, sMessage) {
 			oUser.awaymsg = sMessage;
 			if (bDspStatusChg != false) {
 				if (sMessage.length > 0 && (oUser.ignore == false || oUser.ilevel > IsSuperOwner)) {
-					fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((bTagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : "<span class='cpnickuser'>" + getUserLabel(sNickFrom) + "</span>") + " went away. Reason: " + ParseTextMessage(sMessage) + "</span></span>");
+					fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((bTagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : "<span class='cpnickuser'>" + getUserLabel(sNickFrom) + "</span>") + " " + langr.l_wentaway_a + " " + langr.l_wentaway_b + " " + ParseTextMessage(sMessage) + "</span></span>");
 				}
 				else {
-					fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((bTagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : "<span class='cpnickuser'>" + getUserLabel(sNickFrom) + "</span>") + " went away.</span></span>");
+					fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((bTagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : "<span class='cpnickuser'>" + getUserLabel(sNickFrom) + "</span>") + " " + langr.l_wentaway_a + "</span></span>");
 				}
 				//flashObj.playTagSnd();
 			}
@@ -1950,10 +1983,10 @@ function on822Pr(sNickFrom, sMessage) {
 		updateUserIcon(ouserMe, puicoMe, plbMe, nothing);
 		if (sMessage.length > 0) {
 			ouserMe.awaymsg = sMessage;
-			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='msgfrmt4me'> <b>You have been marked as being away. Away message: " + ParseTextMessage(sMessage) + "</span></span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='msgfrmt4me'> <b>" + langr.l_umarkedaway_a + " " + langr.l_umarkedaway_b + " " + ParseTextMessage(sMessage) + "</span></span></span>");
 		}
 		else {
-			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='msgfrmt4me'> <b>You have been marked as being away.</span></span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='msgfrmt4me'> <b>" + langr.l_umarkedaway_a + "</span></span></span>");
 		}
 	}
 }
@@ -1968,8 +2001,10 @@ function on821Chan(sNickFrom, sChan, sMessage) {
 			var oUser = olvUsers.getItemById(idx).pUser;
 			var bTagged = oUser.tagged;
 			if (bDspStatusChg != false) {
-				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((bTagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : getUserLabel(sNickFrom)) + " is back.</span></span>");
-				//flashObj.playTagSnd();
+				if (oUser.ignore == false || oUser.ilevel > IsSuperOwner) {
+					fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((bTagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : getUserLabel(sNickFrom)) + " " + langr.l_isback + "</span></span>");
+					//flashObj.playTagSnd();
+				}
 			}
 		}
 	}
@@ -1978,7 +2013,7 @@ function on821Chan(sNickFrom, sChan, sMessage) {
 		ouserMe.away = false;
 		formatUserLabel(ouserMe, plbMe);
 		updateUserIcon(ouserMe, puicoMe, plbMe, nothing);
-		fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='msgfrmt4me'> You are no longer marked as being away.</span></span></span>");
+		fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='msgfrmt4me'> " + langr.l_nolongeraway + "</span></span></span>");
 	}
 }
 
@@ -1993,7 +2028,7 @@ function on821Pr(sNickFrom, sMessage) {
 			var oUser = olvUsers.getItemByName(sNickFrom).pUser;
 			var bTagged = oUser.tagged;
 			if (bDspStatusChg != false) {
-				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((bTagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : "<span class='cpnickuser'>" + getUserLabel(sNickFrom) + "</span>") + " is back.</span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((bTagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : "<span class='cpnickuser'>" + getUserLabel(sNickFrom) + "</span>") + " " + langr.l_isback + "</span></span>");
 				//flashObj.playTagSnd();
 			}
 		}
@@ -2003,7 +2038,7 @@ function on821Pr(sNickFrom, sMessage) {
 		ouserMe.away = false;
 		formatUserLabel(ouserMe, plbMe);
 		updateUserIcon(ouserMe, puicoMe, plbMe, nothing);
-		fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='msgfrmt4me'> You are no longer marked as being away.</span></span></span>");
+		fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + "<span class='msgfrmt4me'> " + langr.l_nolongeraway + ".</span></span></span>");
 	}
 }
 function onNameslist(aNames) {
@@ -2021,7 +2056,7 @@ function onNick(sOldNick, sNewNick) {
 	if (idx > -1) {
 		tmpUser.pUser.nick = sNewNick;
 		olvUsers.updateItemById(idx, tmpUser, UPDATEUSER_TEXT);
-		fnAppendText("<span class='msgfrmtparent'><span class='nickchange'>" + cmdIndChar + " " + getUserLabel(sOldNick) + " is now known as " + getUserLabel(sNewNick) + ".</span></span>");
+		fnAppendText("<span class='msgfrmtparent'><span class='nickchange'>" + cmdIndChar + " " + getUserLabel(sOldNick) + " " + langr.l_isknownas + " " + getUserLabel(sNewNick) + ".</span></span>");
 		if (aaTagged[sOldNick]) {
 			removeTag(sOldNick);
 			addTag(sNewNick);
@@ -2033,7 +2068,7 @@ function onNick(sOldNick, sNewNick) {
 function onNickMe(sNewNick) {
 	ouserMe.nick = sNewNick;
 	updateUserLabel2(ouserMe, plbMe);
-	fnAppendText("<span class='msgfrmtparent'><span class='nickchangeme'>" + cmdIndChar + " You are now known as " + getUserLabel(ouserMe.nick) + ".</span></span>");
+	fnAppendText("<span class='msgfrmtparent'><span class='nickchangeme'>" + cmdIndChar + " " + langr.l_knownas + " " + getUserLabel(ouserMe.nick) + ".</span></span>");
 }
 function onChanMode(sSender, sModes, sChan) {
 	//Mike Addon to Fix null mode
@@ -2118,7 +2153,7 @@ function onChanMode(sSender, sModes, sChan) {
 	//if (sTmpStrSubrem.length > 0 || sTmpStrAdd.length > 0) {
 		UpdateLblModes();
 		UpdateChatRoomIcon();
-		fnAppendText("<span class='msgfrmtparent'><span class='modechange'>" + cmdIndChar + " " + getUserLabel(sSender) + " changed modes " + sModes + "</span></span>");
+		fnAppendText("<span class='msgfrmtparent'><span class='modechange'>" + cmdIndChar + " " + getUserLabel(sSender) + " " + langr.l_changedmodes + " " + sModes + "</span></span>");
 	//}
 
 	if (b_xm_ops == true) {
@@ -2184,12 +2219,12 @@ function onAccessNRelatedReplies(numeric, srv_message) {
 	else {
 		if (numeric == "801") {
 			var ereason = aentry.slice(4).join(" ");
-			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Access Add: " + ereason + "</span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_accessadd + " " + ereason + "</span></span>");
 		}
 	}
 	if (numeric == '914') {
 		var ereason = aentry.slice(4).join(" ").substr(1);
-		fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: " + ereason + "</span></span>");		
+		fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error + " " + ereason + "</span></span>");		
 	}
 	/*
 	
@@ -2214,7 +2249,6 @@ function onAccessNRelatedReplies(numeric, srv_message) {
 	*/
 
 }
-
 // Room Properties
 function sendToprops(str) {	
 	$("#propsPane").contents().find("#propsdebug").append(str);
@@ -2246,7 +2280,8 @@ function onPropReplies(numeric, sChan, srv_message) {
 			}
 			else if (pentry[4] === 'LANGUAGE') {
 				var plang = propinfo.toUpperCase();
-				$("#propsPane").contents().find("#languageselect").val(plang);
+				var plang = plang.split("-");
+				$("#propsPane").contents().find("#languageselect").val(plang[0]);
 			}
 			else if	(pentry[4] === 'LOCKED') {
 				if (srv_message.includes("CATEGORY")) { 
@@ -2283,6 +2318,7 @@ function onPropReplies(numeric, sChan, srv_message) {
 		}
 	}	
 }
+
 
 
 
@@ -2323,7 +2359,7 @@ function onChanModeWParams(sSender, modeoplist, sChan) {
 	}
 
 	if (bModesChanged == true) {
-		fnAppendText("<span class='msgfrmtparent'><span class='modechange'>" + cmdIndChar + " " + getUserLabel(sSender) + " changed modes " + sModes + sParams + "</span></span>");
+		fnAppendText("<span class='msgfrmtparent'><span class='modechange'>" + cmdIndChar + " " + getUserLabel(sSender) + " " + langr.l_changedmodes + " " + sModes + sParams + "</span></span>");
 		UpdateLblModes();
 	}
 }
@@ -2377,14 +2413,14 @@ function onUserMode(sSender, modeoplist, sChan) {
 		
 		updateLVIMenu();
 		
-		fnAppendText("<span class='msgfrmtparent'><span class='modechangeme'>" + cmdIndChar + " " + getUserLabel(sSender) + " has changed your modes to " + sTmp + "</span></span>");
+		fnAppendText("<span class='msgfrmtparent'><span class='modechangeme'>" + cmdIndChar + " " + getUserLabel(sSender) + " " + langr.l_haschangedmodesto + " " + sTmp + "</span></span>");
 	}
 }
 // Update Knock 05/15/2016 - Mike
 function onKnock(sFrom, sChan, sMessage) {
-	if (sMessage == '474') { sMessage = '(banned)'; }
-	else if (sMessage == '473') { sMessage = '(invite only)'; }
-	else if (sMessage == '471') { sMessage = '(room full)'; }
+	if (sMessage == '474') { sMessage = '(' + langr.l_banned + ')'; }
+	else if (sMessage == '473') { sMessage = '(' + langr.l_inviteonly + ')'; }
+	else if (sMessage == '471') { sMessage = '(' + langr.l_roomfull + ')'; }
 	else { sMessage = ''; }
 	if (sMessage != '') {
 		if (ouserMe.ilevel >= IsOwner) {
@@ -2394,10 +2430,10 @@ function onKnock(sFrom, sChan, sMessage) {
 				var sFromIdentGate = sFromNick[1].split(".");
 				var sFromFinalGate = sFromIdentGate[sFromIdent].split("@");
 		    	if (sMessage.length > 0) {
-		        	sendTostatus("<span class='knock'>" + cmdIndChar + " " + getUserLabel(sFromNick[0]) + " (" + sFromFinalGate[0] + ") knocked. Message: " + ParseTextMessage(sMessage) + "</span>");
+		        	sendTostatus("<span class='knock'>" + cmdIndChar + " " + getUserLabel(sFromNick[0]) + " (" + sFromFinalGate[0] + ") " + langr.l_knocked_a + " " + langr.l_knocked_b + " " + ParseTextMessage(sMessage) + "</span>");
 		    	}
 				else {
-		        	sendTostatus("<span class='knock'>" + cmdIndChar + " " + getUserLabel(sFrom) + " knocked.</span>");
+		        	sendTostatus("<span class='knock'>" + cmdIndChar + " " + getUserLabel(sFrom) + " " + langr.l_knocked_a + "</span>");
 				}
 				waitknock = true;
 		      	setTimeout(function() {
@@ -2429,15 +2465,14 @@ function checkInviteFlood() {
 
 	LastInviteTime = curInviteTime;
 
-	if (iInviteCountUnderlimit > 4) return true;
+	if (iInviteCountUnderlimit > 2) return true;
 }
 
 function onInvite(sNickFrom, sNickTo, sChanFor) {
-
 	if (bInviteOn == false) {	
 		if (checkInviteFlood() == true) {
 			if (InviteBlockAlert == false) {
-				fnAppendText("<span class='msgfrmtparent'><span class='invite'><i>Blocked invite floods.</i></span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='invite'><i>" + langr.l_blockedinviteflood + "</i></span></span>");
 				InviteBlockAlert = true;
 				flashObj.InviteFlood(true);
 			}
@@ -2445,12 +2480,12 @@ function onInvite(sNickFrom, sNickTo, sChanFor) {
 		}
 
 		if (isHtmlTag(sChanFor) == false) {
-			sChanForR = FixChannelEncoding(sChanFor);
-			var sURI = sSiteURL + "c/?cn=" + escape(sChanForR.splice(2));
-			fnAppendText("<span class='msgfrmtparent'><span class='invite'>" + cmdIndChar + " " + getUserLabel(sNickFrom) + " has invited you to chat room '<u><a href='" + sURI + "' target='_blank'>" + DecodeRoomName(sChanForR) + "</a></u>.'</span></span>");
+		    sChanForR = FixChannelEncoding(sChanFor);
+		    var sURI = sSiteURL + "c/?cn=" + DecodeRoomName(sChanForR);
+			fnAppendText("<span class='msgfrmtparent'><span class='invite'>" + cmdIndChar + " " + getUserLabel(sNickFrom) + " " + langr.l_hasinvitedyou + "<u><a href='" + sURI + "' target='_blank'>" + DecodeRoomName(sChanForR) + "</a></u>.'</span></span>");
 		}
 		else {
-			fnAppendText("<span class='msgfrmtparent'><span class='invite'><i>" + cmdIndChar + " Blocked invite from \"" + getUserLabel(sNickFrom) + "\" for security reason(s).</i></span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='invite'><i>" + cmdIndChar + " " + langr.l_blockedinvite_a + " \"" + getUserLabel(sNickFrom) + "\" " + langr.l_blockedinvite_b + "</i></span></span>");
 		}
 	}				
 }
@@ -2481,58 +2516,58 @@ function onErrorReplies(nErrorNum, sNickTo, sTarget, sMessage) {
 
 	switch (nErrorNum) {
 		case "403":
-			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: 403. Room \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\" does not exist.</span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error403_a + " \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\" " + langr.l_error403_b + "</span></span>");
 			flashObj.sckDisconnect();
 			break;
 
 		case "404":
-			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>IRC Error: 404. " + sMessage + "</span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error404 + " " + sMessage + "</span></span>");
 			break;
 
 		case "431":
-			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>IRC Error: 431. No nickname given. Please use a nickname to enter chat.</span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error431 + "</span></span>");
 			break;
 
 		case "432":
-			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>IRC Error: 432. The nickname you have used is erroneous. Please use another nickname.</span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error432 + "</span></span>");
 			break;
 
 		case "433":
-			if (sTarget.indexOf(">Guest") < 0) fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>IRC Error: 433. The nickname \"" + getUserLabel(sTarget) + "\" is already in use. This client will try another nickname; you can change it later with /nick command if the command is not disabled on the server.</span></span>");
+			if (sTarget.indexOf(">Guest") < 0) fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error433_a + " \"" + getUserLabel(sTarget) + "\" " + langr.l_error433_b + "</span></span>");
 			break;
 
 		case "441":
-			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>IRC Error: 441. User \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\"; " + sMessage + "</span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error441 + " \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\"; " + sMessage + "</span></span>");
 			break;
 
 		case "442":
-			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>IRC Error: 442. Room \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\"; " + sMessage + "</span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error442 + " \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\"; " + sMessage + "</span></span>");
 			break;
 
 		case "451":
-			//fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>IRC Error: 451. "+ sMessage +"</span></span>");
+			//fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr_lerror451 + " "+ sMessage +"</span></span>");
 			break;
 
 		case "461":
-			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>IRC Error: 461. " + DecodeRoomName(FixChannelEncoding(sTarget)) + "; " + sMessage + "</span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error461 + " " + DecodeRoomName(FixChannelEncoding(sTarget)) + "; " + sMessage + "</span></span>");
 			break;
 
 		case "471":
-			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>IRC Error: 471. Room \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\" is full. You cannot join it.</span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error471_a + " \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\" " + langr.l_error471_a + "</span></span>");
 			flashObj.sendToServer("KNOCK " + FixChannelEncoding(sTarget) + " 471");
 			break;
 
 		case "473":
-			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>IRC Error: 473. Room \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\" is invite only. Only those who have been invited may enter this room.</span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error473_a + " \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\" " + langr.l_error473_b + "</span></span>");
 			flashObj.sendToServer("KNOCK " + FixChannelEncoding(sTarget) + " 473");
 			break;
 
 		case "474":
 			if (IsGuestInfoSet) {
-				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>IRC Error: 474. NOTE: You are not logged in. Many rooms do not allow guest nicknames. You should try to login and then join this room.<br />You or similar mask is currently banned by a host in this \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\" chatroom, or banned completely from the chat service due to violations of the Code of Conduct. You may be able to reconnect at a later time.</span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error474_a + " \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\" " + langr.l_error474_b + " " + langr.l_error474_c + "</span></span>");
 			}
 			else {
-				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>IRC Error: 474. You or similar mask is currently banned by a host in this \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\" chatroom, or banned completely from the chat service due to violations of the Code of Conduct. You may be able to reconnect at a later time.</span></span>");
+				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error474_a + " \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\" " + langr.l_error474_b + "</span></span>");
 			}
 			if (sMessage.indexOf("+u") > -1) {
 				flashObj.sendToServer("KNOCK " + FixChannelEncoding(sTarget) + " 474");
@@ -2542,11 +2577,11 @@ function onErrorReplies(nErrorNum, sNickTo, sTarget, sMessage) {
 
 		// Mike Update 04/05/16 Added Key Support
 		case "475":
-            fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>IRC Error: 475. Room \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\" is protected with a password. You cannot join it without correct key.</span></span>");
-            var strKey = prompt("Enter room key:", "");
+            fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error475_a + " \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\" " + langr.l_error475_b + "</span></span>");
+            var strKey = prompt(langr.l_enterkey, "");
             try {
                 if (strKey.length > 0) {
-                    flashObj.sendToServer("join " + FixChannelEncoding(sTarget) + " " + strKey);
+                    flashObj.sendToServer("JOIN " + FixChannelEncoding(sTarget) + " " + strKey);
                 }
             }
             catch (ex) {
@@ -2554,11 +2589,11 @@ function onErrorReplies(nErrorNum, sNickTo, sTarget, sMessage) {
             break;
 
 		case "927":
-			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>IRC Error: 927. Room \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\"; " + sMessage + "</span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error927 + " \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\"; " + sMessage + "</span></span>");
 			break;
 
 		case "999":
-			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>IRC Error: 999. " + sMessage + "</span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error999 + " " + sMessage + "</span></span>");
 			break;
 	}
 	if ($('#chatwindowholder').is(':visible')) {   }
@@ -3034,17 +3069,17 @@ function customWhispData(nick, msg) {
 	var str = '';
 	switch (msg.toUpperCase()) {
 		case "WHISPACCEPTNEEDED":
-			str = "<div class='whispreq-tab'>Waiting for <span class='cpnickuser'>" + getUserLabel(nick) + "</span> to accept your whispers. Don't send more messages until your whisper request is accepted or <span class='cpnickuser'>" + getUserLabel(nick) + "</span> may not receive your messages.</div>"
+			str = "<div class='whispreq-tab'>" + langr.l_whispacceptneeded_a + " <span class='cpnickuser'>" + getUserLabel(nick) + "</span> " + langr.l_whispacceptneeded_a + " <span class='cpnickuser'>" + getUserLabel(nick) + "</span> " + langr.l_whispacceptneeded_a + "</div>"
 			RenderWhisper2tabalt(nick, str);
 			break;
 
 		case "WHISPACCEPTED":
-			str = "<div class='whispreq-tab'><span class='cpnickuser'>" + getUserLabel(nick) + "</span> has accepted your whisper request.</div>"
+			str = "<div class='whispreq-tab'><span class='cpnickuser'>" + getUserLabel(nick) + "</span> " + langr.l_whispaccepted + "</div>"
 			RenderWhisper2tabalt(nick, str);
 			break;
 
 		case "WHISPDECLINED":
-			str = "<div class='whispreq-tab'><span class='cpnickuser'>" + getUserLabel(nick) + "</span> has declined your whisper request.</div>"
+			str = "<div class='whispreq-tab'><span class='cpnickuser'>" + getUserLabel(nick) + "</span> " + langr.l_whispdeclined + "</div>"
 			RenderWhisper2tabalt(nick, str);
 			break;
 
@@ -3053,7 +3088,7 @@ function customWhispData(nick, msg) {
 			break;
 
 		case "WHISPOFF":
-			str = "<div class='whispreq-tab'><span class='cpnickuser'>" + getUserLabel(nick) + "</span> has his/her whispers turned off.</div>"
+			str = "<div class='whispreq-tab'><span class='cpnickuser'>" + getUserLabel(nick) + "</span> " + langr.l_whispoff + "</div>"
 			RenderWhisper2tabalt(nick, str);
 			break;
 	}
@@ -3104,7 +3139,7 @@ function copyCP() {
 		clipboardData.setData("Text", _pcpbody.document.selection.createRange().text);
 	}
 	else if (isFF) {
-		alert("Firefox doesn't allow copy to clipboard through javascript. To Copy please hold the CTRL button and press the V key.");
+		alert(langr.l_firefoxcopy);
 	}
 	else if (isWK) {
 		pChatPane.contentDocument.execCommand("copy");
@@ -3158,7 +3193,7 @@ function mifLocaltime() {
 		//debugOutput(cmdGetTime, 'mifLocaltime');
 	}
 	else {
-		fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + getUserLabel(ouserMe.nick) + "'s local time: " + ParseTextMessage(flashObj.GetMyDateTime()) + "</span></span>");
+		fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + getUserLabel(ouserMe.nick) + "'s " + langr.l_localtime + " " + ParseTextMessage(flashObj.GetMyDateTime()) + "</span></span>");
 	}
 
 	closeAllMenus();
@@ -3254,7 +3289,7 @@ function mifKick() {
 	closeAllMenus();
 }
 function mifKickwmsg() {
-	var kmsg = prompt("Enter Kick Message", "");
+	var kmsg = prompt(langr.l_enterkickmsg, "");
 	if (kmsg != null) {
 		var sIRCCMD = "KICK " + m_sChan + " " + olvUsers.selectedUser().nick + " " + kmsg;
 		flashObj.sendToServer(sIRCCMD);
@@ -3274,7 +3309,7 @@ function fnIrcKickBan(sMsg, type) {
 		}
 	}
 	else {
-		fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: no user selected.</span></span>");
+		fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errornouser + "</span></span>");
 	}
 }
 
@@ -3644,7 +3679,7 @@ function getMenu(el) {
 		switch (el.id.substring(0, 3)) {
 			case 'txS':
 				return 'true';
-			// Mike Addon superownermenu 04/05/16
+			// Mike Addon 04/05/16
 			case 'cpb':
             	if (ouserMe.ilevel >= IsSuperOwner) { $('.superownermenu').show(); }
             	else { $('.superownermenu').hide(); }
@@ -3661,7 +3696,7 @@ function getMenu(el) {
 				SelectLocalUser();
 				if (ouserMe.ilevel >= IsSuperOwner) { $('.superownermenu').show(); }
             	else { $('.superownermenu').hide(); }
-				return _clvicmnu;;
+				return _clvicmnu;
 			default:
 				if (el.id.indexOf("mi") == 0) return null;
 				//if (el.id.indexOf("lbMe") == 0 //add this one if there are other ids starting with 'lbM';
@@ -3727,8 +3762,8 @@ function onMnuUser(lumnu) {
 		if (puser.ignore == true) _pmiIU.innerHTML = lang['menuitem_ignore_true'];
 		else _pmiIU.innerHTML = lang['menuitem_ignore_false'];
 
-		if (puser.ilevel > IsSuperOwner || lumnu == true) fnMnuDisable(true, _pmiIU);
-		else fnMnuDisable(false, _pmiIU);
+		if ((puser.ilevel > IsSuperOwner || lumnu == true) && (staffIgnore.indexOf(puser.nick) <= -1)) { fnMnuDisable(true, _pmiIU); }
+        else { fnMnuDisable(false, _pmiIU); }
 
 		//tag menuitem
 		if (puser.tagged == true) _pmiTUU.innerHTML = lang['menuitem_tagged_true'];
@@ -4056,14 +4091,14 @@ function UpdateUI(puser) {
 	}
 
 	//ignore button
-	if (puser.ilevel > IsSuperOwner) {
-		pBtnIgnore.disable = true;
-		UpdateBtnImage(pBtnIgnore, imgBtnIgnoreDisabled);
-	}
-	else {
-		pBtnIgnore.disable = false;
-		UpdateBtnImage(pBtnIgnore, imgBtnIgnoreEnabled);
-	}
+	if (puser.ilevel > IsSuperOwner && staffIgnore.indexOf(puser.nick) <= -1) {
+        pBtnIgnore.disable = true;
+        UpdateBtnImage(pBtnIgnore, imgBtnIgnoreDisabled);
+    }
+    else {
+        pBtnIgnore.disable = false;
+        UpdateBtnImage(pBtnIgnore, imgBtnIgnoreEnabled);
+    }
 
 	//tag button
 	UpdateBtnImage(pBtnTag, imgBtnTagEnabled);
@@ -4148,7 +4183,7 @@ function showGuestLoginDialog() {
 
 
 	if (pwndGLD.style.display != 'block') {
-		ptxGLN.value = "Enter_Your_Nickname_Here";
+		ptxGLN.value = langr.l_enternickname;
 		strGuestPass = flashObj.GetGuestuserPass();
 		//ppwGuest.value = flashObj.GetGuestuserPass();
 		//fnAppendText(ppwGuest.value);
@@ -4176,7 +4211,7 @@ function onGuestLoginDialogReturn() {
 		fnConnect();
 	}
 	else {
-		ptxGLDErrorMessage.innerHTML = "* Nickname must be more than 2 characters.";
+		ptxGLDErrorMessage.innerHTML = langr.l_nickmorethan2chrs;
 	}
 }
 //---- </ UI >
@@ -4232,12 +4267,12 @@ function fnIgnore() {
 		if (plvi.pUser.ignore == false) {
 			plvi.pUser.ignore = true;
 			fnAddIdentToIgnoreHash(plvi.pUser.ident);
-			var ignoretext = 'You are now ignoring messages from ';
+			var ignoretext = langr.l_nowignoring;
 		}
 		else {
 			plvi.pUser.ignore = false;
 			fnRemIdentFromIgnoreHash(plvi.pUser.ident);
-			var ignoretext = 'You are no longer ignoring messages from ';
+			var ignoretext = langr.l_nolongerignoring;
 		}
 		formatUserLabel(plvi.pUser, plvi.pLabel);
 		updateUserIcon(plvi.pUser, plvi.pIco, plvi.pLabel, plvi.pIggy);
@@ -4281,8 +4316,9 @@ function fnTag() {
 
 var wndChatOptions = null;
 
+
 function OpenChatOptionsWnd() {
-	$('#optionsPane').attr('src', sFUIDIR2 + 'nbchatoptions.htm');
+	$('#optionsPane').attr('src', sFUIDIR2 + 'nbchatoptions.htm?v2');
 	$('.pwindows').css('z-index','200');
 	$('#optionsContainer').css('z-index', '201');
 	$('#optionsContainer').fadeIn();
@@ -4296,7 +4332,7 @@ function OpenModesOptionsWnd() {
 		$('#modesContainer').fadeIn();
 	}
 	else {
-		fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: only users with level superowner can use this command.</span></span>");
+		fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorslevel + "</span></span>");
 	}
 	closeAllMenus();	
 }
@@ -4309,7 +4345,7 @@ function OpenAccessOptionsWnd() {
 		$('#accessContainer').fadeIn();
 	}
 	else {
-		fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: only users with level superowner can use this command.</span></span>");
+		fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorslevel + "</span></span>");
 	}
 	closeAllMenus();	
 }
@@ -4322,7 +4358,7 @@ function OpenPropsOptionsWnd() {
 		$('#propsContainer').fadeIn();
 	}
 	else {
-		fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: only users with level superowner can use this command.</span></span>");
+		fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorslevel + "</span></span>");
 	}
 	closeAllMenus();	
 }
@@ -4533,10 +4569,10 @@ function WhisperTabManager(sNickFrom, sChan, sNickTo, sMessage, type) {
 			if (bWhispOff == false || puser.ilevel >= IsStaff) {
 				//create new window
 				var tabWhisp = preCreateWhispTab(puser, type);
-				str123 = "<div class='whispreq' id='" + tabWhisp.whsptid + "'><div id='abc123' style='color: #8b0000'><span class='cpnickuser'>" + getUserLabel(sNickFrom) + "</span> has sent you whispers (<a href='javascript:;' onclick='subacceptWhispertab(\"" + tabWhisp.whsptid + "\", this);'>accept</a> | <a href='javascript:;' onclick='subdeclineWhispertab(\"" + tabWhisp.whsptid + "\", this);'>decline</a>).</div><div><span style='color: #8b0000'>Message:</span> " + ParseTextMessage(sMessage) + "</div></div>";
+				str123 = "<div class='whispreq' id='" + tabWhisp.whsptid + "'><div id='abc123' style='color: #8b0000'><span class='cpnickuser'>" + getUserLabel(sNickFrom) + "</span> " + langr.l_whisperacceptdecline_a + " (<a href='javascript:;' onclick='subacceptWhispertab(\"" + tabWhisp.whsptid + "\", this);'>" + langr.l_whisperacceptdecline_b + "</a> | <a href='javascript:;' onclick='subdeclineWhispertab(\"" + tabWhisp.whsptid + "\", this);'>" + langr.l_whisperacceptdecline_c + "</a>).</div><div><span style='color: #8b0000'>" + langr.l_whisperacceptdecline_d + "</span> " + ParseTextMessage(sMessage) + "</div></div>";
 				var nd = new Date();
 				var tnd = "<span class='timestamp'>[" + FormatTimeNums(TwelveHour(nd.getHours())) + ":" + FormatTimeNums(nd.getMinutes()) + "" + amPm(nd.getHours()) + "]</span>&nbsp;";
-				sendTostatus("<span id='" + tabWhisp.whsptid + "' class='status-whisper'>Whisper attempt by <b>" + getUserLabel(sNickFrom) + "</b>. Message: " + ParseTextMessage(sMessage) + "</span>");
+				sendTostatus("<span id='" + tabWhisp.whsptid + "' class='status-whisper'>" + langr.l_whisperattempt_a + " <b>" + getUserLabel(sNickFrom) + "</b>. " + langr.l_whisperattempt_b + " " + ParseTextMessage(sMessage) + "</span>");
 				fnAppendText(str123);
 				tabWhisp.inmsgs = sMessage;
 				tabWhisp.inmsgscount = 0;
@@ -4567,7 +4603,7 @@ function WhisperTabManager(sNickFrom, sChan, sNickTo, sMessage, type) {
 			}
 			else {
 				//render message to the main window
-				fnAppendText("<font face='Tahoma' color='#660099'><b>" + getUserLabel(sNickFrom) + " Whispered:</b></font>" + ParseTextMessage(sMessage));
+				fnAppendText("<font face='Tahoma' color='#660099'><b>" + getUserLabel(sNickFrom) + " " + langr.l_whispered + "</b></font>" + ParseTextMessage(sMessage));
 			}
 		}
 	}
@@ -4606,7 +4642,7 @@ function preCreateWhispTab(puserTo, type) {
 		}
 	}
 	else {
-		fnAppendText("<font face='Tahoma' color='#FF3300'>[Alert: Instances of whisper windows have exceeded max limit. If you want to open new whispers conversation in new window, then close some whisper windows.</font>");
+		fnAppendText("<font face='Tahoma' color='#FF3300'>" + langr.l_whispermax + "</font>");
 		bInComingWhispTabsMaxed = true;
 	}
 }
@@ -4655,7 +4691,7 @@ function createWhispTab(tabWhisp, type) {
 		}
 		if (bTabWhispCreateError == true) {
 			DebugWhisp('WhisperWindowInstanceCreationFailed', '');
-			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>Error: Whisper window creation failed; popup-blocker may have blocked creation of whisper window instance.</span></span>");
+			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorwhisper + "</span></span>");
 			return null;
 		}
 		DebugWhisp('Setting WhisperWindow Variables', '');	
@@ -4797,7 +4833,7 @@ function TabWhisperSendMessage(str, tid) {
 	}
 	else {
 		if (fnWhispWndCommands(str.substring(1), tid) == true) return true;
-		$("#WhisperPane_" + tid).contents().find("#whisperbody").append("<div><span class='msgfrmtparent'><span class='errortype1'>Error: That command is not available in whisper window. Please, use /? to check all the available commands</span></span></div>");
+		$("#WhisperPane_" + tid).contents().find("#whisperbody").append("<div><span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorwhisperinvalidcommand + "</span></span></div>");
 		$("#WhisperPane_" + tid)[0].contentWindow.updateScroll();
 		return false;
 	}
@@ -4806,7 +4842,7 @@ function TabWhisperSendMessage(str, tid) {
 function fnWhispWndCommands(sCmd, tid) {
 	switch (sCmd.split(" ", 1)[0].toUpperCase()) {
 		case "?":
-			$("#WhisperPane_" + tid).contents().find("#whisperbody").append("<div><span class='msgfrmtparent'><span class='msgfrmt2'>Commandline commands supported in whisper window: " + sanitizeHtml("Not Available") + ".</span></span></div>");
+			$("#WhisperPane_" + tid).contents().find("#whisperbody").append("<div><span class='msgfrmtparent'><span class='msgfrmt2'>" + langr.l_errorwhispercommandlines + " " + sanitizeHtml("Not Available") + ".</span></span></div>");
 			$("#WhisperPane_" + tid)[0].contentWindow.updateScroll();
 			return true;
 	}
@@ -4815,7 +4851,7 @@ function fnWhispWndCommands(sCmd, tid) {
 function EndTabs(sNick) {	
 	var ret = FindTab(sNick);
 	if (ret >= 0) {
-		var str = "<span class='whisper-hasleft'>" + getUserLabel(sNick) + " has left the conversation.</span>";
+		var str = "<span class='whisper-hasleft'>" + getUserLabel(sNick) + " " + langr.l_userhasleft + ".</span>";
 		if (WhisperTabs[ret].isloaded == true) {
 			RenderWhisper2tabalt(sNick, str);
 			WhisperTabs[ret].userLeft = true;
@@ -4876,7 +4912,7 @@ function whispTabClosed(nick) {
 	if (i >= 0) {
 		var str = '';
 		if (WhisperTabs[i].isloaded == true) {
-			str = "<div style='display:inline' class='whispreq'><span class='cpnickuser'>" + getUserLabel(nick) + "</span> has closed whisper window.</div>";
+			str = "<div style='display:inline' class='whispreq'><span class='cpnickuser'>" + getUserLabel(nick) + "</span> " + langr.l_whisperclose + "</div>";
 			RenderWhisper2tabalt(nick, str);
 		}
 	}
@@ -5119,11 +5155,13 @@ $(document).ready(function() {
 		return false;
 	});
 });	
+
 function randomString(length, chars) {
 	var result = '';
 	for (var i = length; i > 0; --i) result += chars[Math.round(Math.random() * (chars.length - 1))];
 	return result;
 }
+
 function mifPassport() {
 	if (cmnuSelMe == false) { var selUserL = olvUsers.selectedUser();  }
 	else { var selUserL = ouserMe;  }
@@ -5154,4 +5192,6 @@ function mifAddAccess(atype) {
 	}
 	closeAllMenus();
 }
+
+
 //alert(JSON.stringify(WhisperTabs))
