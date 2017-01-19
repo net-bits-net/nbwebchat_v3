@@ -140,7 +140,6 @@ function fnOnLoad() {
     pchInvite.checked = window.parent.bInviteOn;
     pchPicons.checked = window.parent.bPiconsOn;
     pchUnotice.checked = window.parent.bUnoticeOn;
-
     pchShowArrivals.checked = window.parent.bDspArrivals;
     pchShowStatusChg.checked = window.parent.bDspStatusChg;
     pchShowDeparts.checked = window.parent.bDspDeparts;
@@ -165,7 +164,7 @@ function fnOnLoad() {
     oOPtions.bTimeStampOn = pchTimeStamp.checked;
     oOPtions.bInviteOn = pchInvite.checked;
     oOPtions.bPiconsOn = pchPicons.checked;
-    oOPtions.bUnoticeOn = pchUnotice.checked;
+	oOPtions.bUnoticeOn = pchUnotice.checked;
     
     oOPtions.showArrivals = pchShowArrivals.checked;
     oOPtions.showStatusChg = pchShowStatusChg.checked;
@@ -176,6 +175,14 @@ function fnOnLoad() {
     oOPtions.sndTagged      = pchSndTagged.checked;
     oOPtions.sndInvite      = pchSndInvite.checked;
     oOPtions.sndWhisp       = pchSndWhisp.checked;
+    if (window.parent.bUrlOn) { oOPtions.bUrlOn = true; document.getElementById("urlmanageoff").checked = true; document.getElementById("urlm").disabled=false; }
+    else { oOPtions.bUrlOn = false; document.getElementById("urlmanageon").checked = true; document.getElementById("urlm").disabled=true; }
+	/*
+	if (window.parent.bSafeUrlCheckOn) { oOPtions.bSafeUrlCheckOn = true; document.getElementById("urlm").selectedIndex = 1; }
+    else { 
+	*/
+	oOPtions.bSafeUrlCheckOn = false; document.getElementById("urlm").selectedIndex = 0;
+	
 }
 
 function fnOnTextColorChange()
@@ -283,7 +290,24 @@ function fnOnChSndWhisp()
 {
     oOPtions.sndWhisp   = pchSndWhisp.checked;
 }
-
+function fnOnUrlOn() 
+{
+	oOPtions.bUrlOn = false;
+	document.getElementById("urlm").disabled=true;
+}
+function fnOnUrlOff() 
+{
+	oOPtions.bUrlOn = true;
+	document.getElementById("urlm").disabled=false; 
+}
+function fnOnUrlManageChange() 
+{
+	var select = document.getElementById("urlm");
+	var selectedString = select.options[select.selectedIndex].value;
+    if (selectedString == 2) { oOPtions.bSafeUrlCheckOn = true; }
+    else {	oOPtions.bSafeUrlCheckOn = false; }
+    oOPtions.bSafeUrlCheckOn = false;
+}
 //
 function fnSave()
 {
