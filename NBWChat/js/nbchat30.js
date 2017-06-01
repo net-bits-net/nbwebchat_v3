@@ -3986,7 +3986,7 @@ function cmenuShow(event) {
 
 function iniContextMenu() {
 	_pmnucp = getById('cmenuCP'); _pmnuhost = getById('mnuHost'); _pmnuhelpop = getById('mnuHelpOp'); _pmnuuser = getById('mnuUser');
-	_pwndChat = getById('wndChat');
+	_pwndChat = getById('chatwindowholder');
 	_pcpbody = (isIE) ? ChatPane.document.body : pChatPane.contentDocument.body;
 	_pstatusbody = (isIE) ? StatusPane.document.body : pStatusPane.contentDocument.body;
 	_ptxsend = document.getElementById("txSend");
