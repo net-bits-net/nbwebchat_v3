@@ -1231,7 +1231,7 @@ function FixChannelEncoding(sChan) {
 
 function openProfileWindow(pid) {
 	var sURL = sSiteURL + "u/" + pid;
-	window.open(sURL, 'wndprofile');
+	window.open(sURL, '_blank');
 }
 
 function addTag(nick) {
