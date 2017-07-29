@@ -5,5 +5,6 @@ var flashconfig = {
             + flashembed.getHTML({ id: 'nbwchat', src: 'flashchat20.swf?update=20,35', wmode: 'opaque' });
     }
 };
+
 var ircserverips = "167.114.203.99";
-var ircserverport = "6668";
+var ircserverport = "7778";

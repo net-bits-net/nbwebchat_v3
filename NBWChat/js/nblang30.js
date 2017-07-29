@@ -59,6 +59,7 @@ langr = {
     l_whisperacceptdecline_a: "has sent you whispers",
     l_whisperacceptdecline_b: "accept",
     l_whisperacceptdecline_c: "decline",
+    l_whisperacceptdecline_e: "ignore user",
     l_whisperacceptdecline_d: "Message:",
     l_whisperattempt_a: "Whisper attempt by",
     l_whisperattempt_b: "Message:",

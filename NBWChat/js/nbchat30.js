@@ -6,10 +6,13 @@ var isFF = (userAgent.indexOf('firefox') !== -1);
 var isWK = (userAgent.indexOf('webkit') !== -1);
 var dtTmssaved = false;
 //Update(01-Oct-2014): protection against time and version reply flooding. --Mike
+var waiterror = false;
 var waittime = false;
 var waitnotice = false;
 var waittimereply = false;
 var waitversion = false;
+var waityoutubect = false;
+var ytcount = 0;
 //Update(16-May-2016): protection against knock flooding. --Mike
 var waitknock = false;
 var waitwhispersound = false;
@@ -25,12 +28,12 @@ var whisperoffset = 0;
 if (window.sFUIDIR === undefined) { sFUIDIR = ''; sFUIDIR2 = ''; }
 else {
 	sFUIDIR2 = sFUIDIR + '/';
-	var sTPN = window.location.pathname.replace(/chatui.aspx|chatui.php|\/c\/.*/i, "");
+	var sTPN = window.location.pathname.replace(/chatui.aspx|chatui.php|\/c\/?.*/i, "");
 	var hostport = ":" + window.location.port;
 	sURIFUIDIR2 = "http://" + window.location.hostname + hostport + sTPN + sFUIDIR2;
 }
 var aaTagged = new Array();
-var staffIgnore = ["^Bot_Ignore"];
+var staffIgnore = ["^Bot_Iggy"];
 var sMsg = '';
 var sIcoDir = 'images/listicons/';
 var sIcoDir2 = 'images/listicons/';
@@ -117,28 +120,52 @@ var bUnoticeOn = false;
 //Update Jan 18 2017 Add URL Management
 var bUrlOn = false;
 var bSafeUrlCheckOn = false;
+//Update Apr 2017 Youtube support
+var bYoutubeUrl = 1;
+text_truncate = function (str, length, ending) {
+	if (length == null) {
+		length = 100;
+	}
+	if (ending == null) {
+		ending = '...';
+	}
+	if (str.length > length) {
+		return str.substring(0, length - ending.length) + ending;
+	} else {
+		return str;
+	}
+};
+
 function fnPreloadUIImages() {
-	MM_preloadImages(    	
-		imgBtnProfileDisabled, 
-		imgBtnProfileEnabled, 
-		imgBtnWhispDisabled, 
-		imgBtnWhispEnabled, 
-		imgBtnIgnoreDisabled, 
-		imgBtnIgnoreEnabled, 
-		imgBtnTagEnabled, 
-		imgBtnTagDisabled, 
-		imgBtnSendHover, 
-		imgBtnAction, 
-		imgIconAway, 
-		imgIconTag, 
-		imgBtnEmotes, 
-		imgBtnColorsel, 
-		imgBtnMenubg				
-		);
+	MM_preloadImages(
+		imgBtnProfileDisabled,
+		imgBtnProfileEnabled,
+		imgBtnWhispDisabled,
+		imgBtnWhispEnabled,
+		imgBtnIgnoreDisabled,
+		imgBtnIgnoreEnabled,
+		imgBtnTagEnabled,
+		imgBtnTagDisabled,
+		imgBtnSendHover,
+		imgBtnAction,
+		imgIconAway,
+		imgIconTag,
+		imgBtnEmotes,
+		imgBtnColorsel,
+		imgBtnMenubg
+	);
 }
 
 //<Utility Functions>
-
+function YouTubeGetID(url) {
+	var ID = '';
+	url = url.replace(/(>|<)/gi, '').split(/(vi\/|v=|\/v\/|youtu\.be\/|\/embed\/)/);
+	if (url[2] !== undefined) {
+		ID = url[2].split(/[^0-9a-z_\-]/i);
+		ID = ID[0];
+	}
+	return ID;
+}
 setInterval("cleanPendingActionsList()", 30000);
 
 function cleanPendingActionsList() {
@@ -179,12 +206,12 @@ function debugOutput(ex, loc) {
 RegExp.escape = function (text) {
 	if (!arguments.callee.sRE) {
 		var specials = [
-	  '/', '.', '*', '+', '?', '|', '$',
-	  '(', ')', '[', ']', '{', '}', '\\', '^'
-	];
+			'/', '.', '*', '+', '?', '|', '$',
+			'(', ')', '[', ']', '{', '}', '\\', '^'
+		];
 		arguments.callee.sRE = new RegExp(
-	  '(\\' + specials.join('|\\') + ')', 'gi'
-	);
+			'(\\' + specials.join('|\\') + ')', 'gi'
+		);
 	}
 	return text.replace(arguments.callee.sRE, '\\$1');
 }
@@ -208,7 +235,7 @@ function MM_preloadImages() { //v3.0
 	var d = document; if (d.images) {
 		if (!d.MM_p) d.MM_p = new Array();
 		var i, j = d.MM_p.length, a = MM_preloadImages.arguments; for (i = 0; i < a.length; i++)
-			if (a[i].indexOf("#") != 0) { d.MM_p[j] = new Image; d.MM_p[j++].src = a[i]; } 
+			if (a[i].indexOf("#") != 0) { d.MM_p[j] = new Image; d.MM_p[j++].src = a[i]; }
 	}
 }
 
@@ -374,7 +401,23 @@ function FixHexColorIfHexCode(str_color) {
 
 	return str_color;
 }
+
+var RenderOptions = (function () {
+	function RenderOptions() {
+		this.RenderEmots = false;
+		this.RenderLinks = false;
+	}
+	return RenderOptions;
+}());
+
 function ParseTextMessage2(str, rendEmots) {
+	var ro = new RenderOptions();
+	ro.RenderEmots = rendEmots;
+	ro.RenderLinks = bUrlOn == false;
+	return ParseTextMessage3(str, ro);
+}
+
+function ParseTextMessage3(str, ro) {
 	//ToDo: optimizations and html tag striping
 	var regret = null, bbcoderet = null;
 	var strtmp = '', strsubtmp = '', pos1 = 0, bSanitize = true;
@@ -410,10 +453,10 @@ function ParseTextMessage2(str, rendEmots) {
 								strsubtmp += 'font-family:' + bbcoderet[0].substr(3);
 							}
 							else if (bbcoderet[0].indexOf("bgco:") == 0) {
-							    strsubtmp += 'background-color:' + FixHexColorIfHexCode(bbcoderet[0].substr(5));
+								strsubtmp += 'background-color:' + FixHexColorIfHexCode(bbcoderet[0].substr(5));
 							}
 							else if (bbcoderet[0].indexOf("co:") == 0) {
-							    strsubtmp += 'color:' + FixHexColorIfHexCode(bbcoderet[0].substr(3));
+								strsubtmp += 'color:' + FixHexColorIfHexCode(bbcoderet[0].substr(3));
 							}
 							else if (bbcoderet[0].indexOf("b;") == 0) {
 								strsubtmp += 'font-weight:bold;';
@@ -451,23 +494,84 @@ function ParseTextMessage2(str, rendEmots) {
 				//edit end
 			}
 			else if (regret[0].search(paturl) != -1) {
-				if (bUrlOn == false) {
-					strtmp += str.slice(pos1, regret.index) + "<a href='" + regret[0] + "' target='_blank'>" + regret[0] + "</a>";
+				if (ro.RenderLinks) {
+					//Note: in channel list render link will be false so no need to handle youtube links here for channel list. 29-Jul-2017 HY
+					if (YouTubeGetID(regret[0])) {
+						if (bYoutubeUrl == 2) {
+							if (!waityoutubect) {
+								waityoutubect = true;
+								setTimeout(function () {
+									waityoutubect = false;
+								}, 2000);
+								var youtubeID = YouTubeGetID(regret[0]);
+								ytcount++;
+								strtmp += str.slice(pos1, regret.index) + "<a href='" + regret[0] + "' target='_blank'>" + regret[0] + "</a>";
+								$.getJSON("https://www.googleapis.com/youtube/v3/videos", {
+									key: "AIzaSyDAUcNMLQGLCC57fr6cchMAUUlqUSNYiQg",
+									part: "snippet,statistics",
+									id: youtubeID
+								}, function (data) {
+									if (data.items.length === 0) {
+										return;
+									}
+									$("#ChatPane").contents().find("#cpbody").append("<div class='ytbox' id='ytbox_" + ytcount + "'><div class='ytloading'><img src='" + sFUIDIR + "/images/loading.gif' alt='' /> loading title...</div></div>");
+									ytoutput = "<div class='ytholdertitle'><div id='vidid_" + ytcount + "'><div style='display:inline;font-weight:bold;color:black;margin-right:2px;'>You</div><div style='display:inline;font-weight:bold;color:white;background-color:red;margin-right:5px;-webkit-border-radius: 5px;-moz-border-radius: 5px;border-radius: 5px;padding:0 2px;'>Tube</div><a id='ytxout_" + ytcount + "' href='#'>x</a> - <a target='_blank' href='https://www.youtube.com/watch?v=" + youtubeID + "'>" + data.items[0].snippet.title + "</a></div></div>";
+									setTimeout(function () {
+										showvid(ytoutput, ytcount, 2);
+									}, 1000);
+								});
+							}
+						}
+						else if (bYoutubeUrl == 3) {
+							if (!waityoutubect) {
+								waityoutubect = true;
+								setTimeout(function () {
+									waityoutubect = false;
+								}, 2000);
+								var youtubeID = YouTubeGetID(regret[0]);
+								ytcount++;
+								strtmp += str.slice(pos1, regret.index) + "<a href='" + regret[0] + "' target='_blank'>" + regret[0] + "</a>";
+								$.getJSON("https://www.googleapis.com/youtube/v3/videos", {
+									key: "AIzaSyDAUcNMLQGLCC57fr6cchMAUUlqUSNYiQg",
+									part: "snippet,statistics",
+									id: youtubeID
+								}, function (data) {
+									if (data.items.length === 0) {
+										return;
+									}
+									$("#ChatPane").contents().find("#cpbody").append("<div class='ytbox' id='ytbox_" + ytcount + "'><div class='ytloading'><img src='" + sFUIDIR + "/images/loading.gif' alt='' /> loading video...</div></div>");
+									ytoutput = "<div class='ytholder'><a class='videolink' target='_blank' href='https://www.youtube.com/watch?v=" + youtubeID + "'><span></span><img src='https://img.youtube.com/vi/" + youtubeID + "/0.jpg' alt='' /></a><div class='ytxout'><a id='ytxout_" + ytcount + "' href='#'>x</a></div><div class='ytvideotitle' id='vidid_" + ytcount + "'>" + text_truncate(data.items[0].snippet.title, 80, '...') + "</div><div class='ytvideodesc'>" + text_truncate(data.items[0].snippet.description, 80, '...') + "</div><div style='font-size:10px;float:right;display:inline;font-weight:bold;color:white;background-color:red;margin-right:5px;-webkit-border-radius: 5px;-moz-border-radius: 5px;border-radius: 5px;padding:0 2px;'>Tube</div><div style='font-size:10px;float:right;display:inline;font-weight:bold;color:black;margin-right:2px;'>You</div></div>";
+									setTimeout(function () {
+										showvid(ytoutput, ytcount, 3);
+									}, 1000);
+								});
+							}
+						}
+						else {
+							strtmp += str.slice(pos1, regret.index) + "<a href='" + regret[0] + "' target='_blank'>" + regret[0] + "</a>";
+						}
+					}
+					else {
+						strtmp += str.slice(pos1, regret.index) + "<a href='" + regret[0] + "' target='_blank'>" + regret[0] + "</a>";
+					}
+
 				}
 				else {
-					strtmp += str.slice(pos1, regret.index) + "<span style=\"color:blue;\">-URLs Blocked in Options-</span>";
+					//old code, commented 29-jul-2017 HY
+					//strtmp += str.slice(pos1, regret.index) + "<span style=\"color:blue;\">-URLs Blocked in Options-</span>";
+					strtmp += str.slice(pos1, regret.index) + "<a href='#' target='_blank' disabled='disabled' style='pointer-events: none;' onclick='return false;'>" + regret[0] + "</a>";
 				}
 				pos1 = re.lastIndex;
 			}
 			else {
 				//debugOutput(rendEmots ,'ParseTextMessage2');
-				if (rendEmots == true) {
+				if (ro.RenderEmots == true) {
 					//var checkdoline = '';
 					regret[0] = colRepl[regret[0].toLowerCase()];
 					//checkdoline = regret[0].indexOf("doline");
 					//if (regret[0] != undefined && checkdoline == -1) {
 					if (regret[0] != undefined) {
-                    	strtmp += str.slice(pos1, regret.index) + '<img class="emotestyle" src="' + sEmotsDir + regret[0] + '" border="0" />';
+						strtmp += str.slice(pos1, regret.index) + '<img class="emotestyle" src="' + sEmotsDir + regret[0] + '" border="0" />';
 						pos1 = re.lastIndex;
 					}
 				}
@@ -476,13 +580,17 @@ function ParseTextMessage2(str, rendEmots) {
 		else break;
 	}
 
-	if (pos1 < str.length) strtmp += str.slice(pos1); 
+	if (pos1 < str.length) strtmp += str.slice(pos1);
 	if (IsTagClosings()) strtmp += closeRemaingTags();
 
 	//alert(UnescapeSpecialChars(strtmp));
 	return UnescapeSpecialChars(strtmp);
 }
 
+function showvid(content, id, vtype) {
+	$("#ChatPane").contents().find("#ytbox_" + id).html(content);
+	ScrollFix();
+}
 function IsMyDispFormatGood() {
 	if (bTextFrmtOff == true) return false;
 	if (typeof (sDspFrmt) == 'undefined') return false;
@@ -542,22 +650,22 @@ function FormatTimeNums(tn) {
 
 function fnAppendText(str) {
 	bSkipCPScroll = true;
-	if (bTimeStampOn == true) {	    
-		var dtTms = new Date();	
+	if (bTimeStampOn == true) {
+		var dtTms = new Date();
 		// Update(15-Aug-2016): addition of date stamp bar	
 		var dtTmsn = dtTms.getDate() + " " + monthNames[dtTms.getMonth()] + " " + dtTms.getFullYear();
 		var tms = "<span class='timestamp'>[" + FormatTimeNums(TwelveHour(dtTms.getHours())) + ":" + FormatTimeNums(dtTms.getMinutes()) + "" + amPm(dtTms.getHours()) + "]</span>&nbsp;";
 		if (!dtTmssaved || dtTmssaved != dtTmsn) {
 			dtTmssaved = dtTmsn;
 			var tmsline = "<div class='timeline'><span>" + dtTmsn + "</span></div>";
-			str = tmsline + tms + str;			
+			str = tmsline + tms + str;
 		}
 		else {
 			str = tms + str;
-		}	
+		}
 	}
 	$("#ChatPane").contents().find("#cpbody").append('<div class="linebreakindenter">' + str + '</div>');
-	if (isIE) { 
+	if (isIE) {
 		if (bSkipCPScrollCall == false) { autoCPScroll(ChatPane.document.body); }
 	}
 	else {
@@ -646,7 +754,7 @@ function fnSend(str) {
 			else {
 				fnAppendText('<span class="cpblankicospace"></span>' + GetFormattedNickMe() + '&nbsp;:&nbsp;' + ParseTextMessage(FormatSendTextMessage(str)));
 			}
-		}	
+		}
 		flashObj.sendToServer("PRIVMSG " + m_sChan + " :" + FormatSendTextMessage(str));
 
 		return true;
@@ -661,7 +769,7 @@ function fnSend(str) {
 function fnConnect() {
 	if (IsGuestInfoSet) flashObj.sckConnect();
 	else onFlashSocketLoad();
-	sendTostatus('<span class="status-connected">' + langr.l_connected + '</span>');    
+	sendTostatus('<span class="status-connected">' + langr.l_connected + '</span>');
 }
 
 function fnReconnect() {
@@ -858,9 +966,9 @@ function ProcessInterUserCommand(sCmd) {
 		case "BAN24H":
 			fnIrcKickBan(sCmd.split(" ").slice(1).join(" "), CMD_KICKBAN24H);
 			break;
-			
+
 		case "GUESTBAN":
-			if (ouserMe.ilevel >= IsSuperOwner ) {
+			if (ouserMe.ilevel >= IsSuperOwner) {
 				flashObj.sendToServer("ACCESS " + m_sChan + " ADD DENY >* 0 : GuestBan");
 				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_guestnowbanned + "<span class='errortype1'></span></span>");
 			}
@@ -868,9 +976,9 @@ function ProcessInterUserCommand(sCmd) {
 				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorslevel + "</span></span>");
 			}
 			break;
-			
+
 		case "GUESTUNBAN":
-			if (ouserMe.ilevel >= IsSuperOwner ) {
+			if (ouserMe.ilevel >= IsSuperOwner) {
 				flashObj.sendToServer("ACCESS " + m_sChan + " DELETE DENY >*");
 				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_guestbanremoved + "<span class='errortype1'></span></span>");
 			}
@@ -878,9 +986,9 @@ function ProcessInterUserCommand(sCmd) {
 				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorslevel + "</span></span>");
 			}
 			break;
-		
+
 		case "GUESTMIRCBAN":
-			if (ouserMe.ilevel >= IsSuperOwner ) {
+			if (ouserMe.ilevel >= IsSuperOwner) {
 				flashObj.sendToServer("ACCESS " + m_sChan + " ADD DENY >*1_* 0 : mIRC GuestBan");
 				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_mircguestnowbanned + "<span class='errortype1'></span></span>");
 			}
@@ -888,28 +996,28 @@ function ProcessInterUserCommand(sCmd) {
 				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorslevel + "</span></span>");
 			}
 			break;
-			
+
 		case "GUESTMIRCUNBAN":
-			if (ouserMe.ilevel >= IsSuperOwner ) {
+			if (ouserMe.ilevel >= IsSuperOwner) {
 				flashObj.sendToServer("ACCESS " + m_sChan + " DELETE DENY >*1_*");
 				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_mircgueatbanremoved + "<span class='errortype1'></span></span>");
 			}
 			else {
 				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorslevel + "</span></span>");
 			}
-			break;    
-		
+			break;
+
 		case "INVITE":
-            if (ouserMe.ilevel >= IsHost) {
-            	var inviteName = sCmd.split(" ").slice(1).join(" ");
-            	flashObj.sendToServer("INVITE " + inviteName + " " + m_sChan);
-            	fnAppendText("<span class='msgfrmtparent'><span class='invite'>" + langr.l_youareinvited_a + " " + inviteName + " " + langr.l_youareinvited_b + "</span></span>");
-            }
-            else {
-                fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorhlevel + "</span></span>");
-            }
-            break;
-		
+			if (ouserMe.ilevel >= IsHost) {
+				var inviteName = sCmd.split(" ").slice(1).join(" ");
+				flashObj.sendToServer("INVITE " + inviteName + " " + m_sChan);
+				fnAppendText("<span class='msgfrmtparent'><span class='invite'>" + langr.l_youareinvited_a + " " + inviteName + " " + langr.l_youareinvited_b + "</span></span>");
+			}
+			else {
+				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorhlevel + "</span></span>");
+			}
+			break;
+
 		case "?":
 			listCommands();
 			break;
@@ -932,7 +1040,7 @@ function ProcessInterUserCommand(sCmd) {
 		case "HOP":
 			window.location.reload();
 			break;
-		
+
 		case "FIXSCROLL":
 			ScrollFix();
 			break;
@@ -952,14 +1060,14 @@ function ProcessInterUserCommand(sCmd) {
 			break;
 		// Mike Addon 07/30/16
 		case "PROPS":
-			OpenPropsOptionsWnd();			
+			OpenPropsOptionsWnd();
 			break;
-			
+
 		// Mike Addon 04/05/16
 		case "MODES":
-			OpenModesOptionsWnd();			
-			break;		
-		
+			OpenModesOptionsWnd();
+			break;
+
 		case "RAW":
 			flashObj.sendToServer(sCmd.split(" ").slice(1).join(" "));
 			break;
@@ -1054,9 +1162,9 @@ function getUserLabel2(puser) {
 	return tnick;
 }
 function fnGetIgnore(puser) {
-if (puser.ignore == true) { return sIcoDir + arListIcons["ico_ignore"]; }
-else if (puser.tagged == true) { return sIcoDir + arListIcons["ico_tagged"]; }
-else { return sIcoDir + arListIcons["ico_blank"]; }
+	if (puser.ignore == true) { return sIcoDir + arListIcons["ico_ignore"]; }
+	else if (puser.tagged == true) { return sIcoDir + arListIcons["ico_tagged"]; }
+	else { return sIcoDir + arListIcons["ico_blank"]; }
 }
 function fnGetIco(puser) {
 	//alert(sIcoDir);
@@ -1107,7 +1215,7 @@ function updateUserLabel(puser, plb) {
 
 function updateUserLabel2(puser, plb) {
 	//debugOutput('aaaa', 'updateUserLabel2');
-	
+
 	if (typeof (plb.value) == 'undefined') plb.innerHTML = getUserLabel2(puser);
 	else plb.value = getUserLabel2(puser);
 }
@@ -1259,27 +1367,27 @@ function BuildFmtString(pOptions) {
 
 function loadOptions() {
 	var COptions = flashObj.LoadChatOptions();
-	var EOptions = flashObj.GetExtraOptions(); 
+	var EOptions = flashObj.GetExtraOptions();
 	if (COptions.sDspFrmt) {
-		var fontinfo = COptions.sDspFrmt.split(";"); 
+		var fontinfo = COptions.sDspFrmt.split(";");
 		for (f = 0; f < fontinfo.length; f++) {
 			if (fontinfo[f].substr(0, 3) == 'ff:') { sendFontfamily = fontinfo[f].substr(3); }
 			if (fontinfo[f].substr(0, 3) == 'co:') { sendFontcolor = fontinfo[f].substr(3); }
 			if (fontinfo[f].substr(0, 1) == 'b') { sendFontweight = 'bold'; }
-			if (fontinfo[f].substr(0, 1) == 'i') { sendFontstyle = 'italic'; }		
+			if (fontinfo[f].substr(0, 1) == 'i') { sendFontstyle = 'italic'; }
 		}
 		if (sendFontfamily != null) { ptxSend.style.fontFamily = sendFontfamily; }
 		if (sendFontcolor != null) { ptxSend.style.color = sendFontcolor; }
 		if (sendFontweight != null) { ptxSend.style.fontWeight = sendFontweight; }
 		if (sendFontstyle != null) { ptxSend.style.fontStyle = sendFontstyle; }
-	}	
+	}
 	sDspFrmt = COptions.sDspFrmt;
 	if (COptions.fontSize && COptions.fontSize != 'null') {
 		pageFontsize = COptions.fontSize;
-		 _pcpbody.style.fontSize = COptions.fontSize;
-		 _pstatusbody.style.fontSize = COptions.fontSize;
-		 
-	}	 
+		_pcpbody.style.fontSize = COptions.fontSize;
+		_pstatusbody.style.fontSize = COptions.fontSize;
+
+	}
 	bCorpText = COptions.corpText;
 	sAwayMsg = (COptions.sAwayMsg == XmlNullChar) ? '' : COptions.sAwayMsg;
 
@@ -1304,7 +1412,7 @@ function loadOptions() {
 
 	if (typeof (COptions.bWhispOff) == 'boolean') bWhispOff = COptions.bWhispOff;
 	if (typeof (COptions.bTimeStampOn) == 'boolean') bTimeStampOn = COptions.bTimeStampOn;
-	if (typeof (EOptions) != 'undefined') { 
+	if (typeof (EOptions) != 'undefined') {
 		if (typeof (EOptions.bInviteOn) == 'boolean') { bInviteOn = EOptions.bInviteOn; }
 		else { bInviteOn = false; }
 		if (typeof (EOptions.bPiconsOn) == 'boolean') { bPiconsOn = EOptions.bPiconsOn; }
@@ -1315,9 +1423,10 @@ function loadOptions() {
 		else { bUrlOn = false; }
 		if (typeof (EOptions.bSafeUrlCheckOn) == 'boolean') { bSafeUrlCheckOn = EOptions.bSafeUrlCheckOn; }
 		else { bSafeUrlCheckOn = false; }
-		
+		if (typeof (EOptions.bYoutubeUrl) == 'number' && EOptions.bYoutubeUrl > 0) { bYoutubeUrl = EOptions.bYoutubeUrl; }
+		else { bYoutubeUrl = 1; }
 	}
-	else { bInviteOn = false; bPiconsOn = false; bUnoticeOn = false; bUrlOn = false; bSafeUrlCheckOn = false; }
+	else { bInviteOn = false; bPiconsOn = false; bUnoticeOn = false; bUrlOn = false; bSafeUrlCheckOn = false; bYoutubeUrl = 1; }
 	//alert(JSON.stringify(EOptions));
 	//sound are played in flash object, so they won't load here
 }
@@ -1350,6 +1459,7 @@ function saveOptions(pOptions) {
 	bUnoticeOn = pOptions.bUnoticeOn;
 	bUrlOn = pOptions.bUrlOn;
 	bSafeUrlCheckOn = pOptions.bSafeUrlCheckOn;
+	bYoutubeUrl = pOptions.bYoutubeUrl;
 	//
 	var COptions = new Object();
 	// Update Aug 12 2015 Extra Settings
@@ -1382,14 +1492,15 @@ function saveOptions(pOptions) {
 	EOptions.bUnoticeOn = pOptions.bUnoticeOn;
 	EOptions.bUrlOn = pOptions.bUrlOn;
 	EOptions.bSafeUrlCheckOn = pOptions.bSafeUrlCheckOn;
-	     
+	EOptions.bYoutubeUrl = pOptions.bYoutubeUrl;
+
 	if (COptions.sDspFrmt) {
-		var fontinfo = COptions.sDspFrmt.split(";"); 
+		var fontinfo = COptions.sDspFrmt.split(";");
 		for (f = 0; f < fontinfo.length; f++) {
 			if (fontinfo[f].substr(0, 3) == 'ff:') { sendFontfamily = fontinfo[f].substr(3); }
 			if (fontinfo[f].substr(0, 3) == 'co:') { sendFontcolor = fontinfo[f].substr(3); }
 			if (fontinfo[f].substr(0, 1) == 'b') { sendFontweight = 'bold'; }
-			if (fontinfo[f].substr(0, 1) == 'i') { sendFontstyle = 'italic'; }		
+			if (fontinfo[f].substr(0, 1) == 'i') { sendFontstyle = 'italic'; }
 		}
 		if (sendFontfamily != null) { ptxSend.style.fontFamily = sendFontfamily; }
 		else { ptxSend.style.fontFamily = 'Tahoma'; }
@@ -1400,12 +1511,12 @@ function saveOptions(pOptions) {
 		if (sendFontstyle != null) { ptxSend.style.font = sendFontstyle; }
 		else { ptxSend.style.fontStyle = 'normal'; }
 		setFontswhisper();
-	}	
-	
+	}
+
 	flashObj.SaveChatOptions(COptions);
 	// Update Aug 12 2015 Extra Settings
-	flashObj.SetExtraOptions(EOptions);  
-	
+	flashObj.SetExtraOptions(EOptions);
+
 	ScrollFix();
 }
 function getCPBody() {
@@ -1481,7 +1592,7 @@ function OnCPScroll() {
 }
 
 
-function fnInitialize() {    
+function fnInitialize() {
 	//Update: moved images to var at top for better management --Duke, 12-Feb-2014.
 	fnPreloadUIImages();
 	ptxSend = document.getElementById('txSend');
@@ -1594,7 +1705,7 @@ function onJoin(ujoined, chan) {
 	if (bDspArrivals != false) {
 		var usrname = (bShowIdentOnJoin) ? getUserLabel(ujoined.nick) + "!" + ujoined.fullident + "@*" : getUserLabel(ujoined.nick);
 		// Update Dec 3 2016 Superowner show ident Mike
-		if (ouserMe.ilevel >= IsSuperOwner ) { fnAppendText('<span class="msgfrmtparent"><span class="msgfrmt4">' + cmdIndChar + ' <a class="usernickclick" style="text-decoration:none;" href="javascript:;" onclick="usernickclick(\'' + ujoined.nick + '\');">' + usrname + '</a> ' + langr.l_userhasjoined + ' Passport: ' + ujoined.ident + '</span></span>'); }
+		if (ouserMe.ilevel >= IsSuperOwner) { fnAppendText('<span class="msgfrmtparent"><span class="msgfrmt4">' + cmdIndChar + ' <a class="usernickclick" style="text-decoration:none;" href="javascript:;" onclick="usernickclick(\'' + ujoined.nick + '\');">' + usrname + '</a> ' + langr.l_userhasjoined + ' Passport: ' + ujoined.ident + '</span></span>'); }
 		else { fnAppendText('<span class="msgfrmtparent"><span class="msgfrmt4">' + cmdIndChar + ' <a class="usernickclick" style="text-decoration:none;" href="javascript:;" onclick="usernickclick(\'' + ujoined.nick + '\');">' + usrname + '</a> ' + langr.l_userhasjoined + '</span></span>'); }
 	}
 	UpdateUserCount();
@@ -1607,13 +1718,13 @@ function onRemoveUserByNick(sNick) {
 	if (pUser != null) {
 		// Update Dec 3 2016 Superowner show ident Mike
 		if (bDspDeparts != false) {
-        	if (ouserMe.ilevel >= IsSuperOwner ) { 
-        		if (pUser.ident != null) { var passportshow = "Passport: " + pUser.ident; }
-        		else { var passportshow = ''; }
-				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((pUser.tagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(pUser.nick) + "</span>") : getUserLabel(pUser.nick)) + " " + langr.l_userhasleft + " " + passportshow + "</span></span>"); 
+			if (ouserMe.ilevel >= IsSuperOwner) {
+				if (pUser.ident != null) { var passportshow = "Passport: " + pUser.ident; }
+				else { var passportshow = ''; }
+				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((pUser.tagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(pUser.nick) + "</span>") : getUserLabel(pUser.nick)) + " " + langr.l_userhasleft + " " + passportshow + "</span></span>");
 			}
-			else { fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((pUser.tagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(pUser.nick) + "</span>") : getUserLabel(pUser.nick)) + " " + langr.l_userhasleft + "</span></span>"); } 
-        }
+			else { fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((pUser.tagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(pUser.nick) + "</span>") : getUserLabel(pUser.nick)) + " " + langr.l_userhasleft + "</span></span>"); }
+		}
 		removeTag(sNick);
 		EndTabs(sNick);
 		UpdateUserCount();
@@ -1671,55 +1782,54 @@ function onProp(sNickFrom, sChan, sType, sMessage) {
 
 function onNotice(sNickFrom, sChan, sMessage) {
 	if (sMessage == XmlNullChar) sMessage = '';
-
 	fnAppendText("<span class='msgfrmt5'><span class='titlenotice'>" + ((aaTagged[sNickFrom] == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : getUserLabel(sNickFrom)) + " (" + langr.l_notice + "):</span><span class='msgnotice'>" + ParseTextMessage(sMessage) + "</span></span>");
 }
 
 function onNoticePrivate(sNickFrom, sChan, sMessage) {
-    if (sMessage == XmlNullChar) sMessage = '';
-    //ToDo:
-    var plvi = olvUsers.getItemByName(sNickFrom);
-    if ((plvi.pUser.ignore == false) || (plvi.pUser.ilevel > IsSuperOwner && staffIgnore.indexOf(pLVI.pUser.nick) <= -1)) {
-		if (sMessage.charAt(0) != "\2")	{           
+	if (sMessage == XmlNullChar) sMessage = '';
+	//ToDo:
+	var plvi = olvUsers.getItemByName(sNickFrom);
+	if ((plvi.pUser.ignore == false) || (plvi.pUser.ilevel > IsSuperOwner && staffIgnore.indexOf(pLVI.pUser.nick) <= -1)) {
+		if (sMessage.charAt(0) != "\2") {
 			//Update(11-Aug-2016): parsetext2 to remove emotes. --Mike
 			if (bUnoticeOn == false) {
 				fnAppendText("<div style='padding-left:30px;'><span class='msgfrmt5'><span class='titlenoticepr'>" + ((aaTagged[sNickFrom] == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : getUserLabel(sNickFrom)) + " (" + langr.l_notice + "):</span> <span class='msgnoticepr'>" + ParseTextMessage2(sMessage, false) + "</span></span></div>");
-        	}
-        	else {
-        		if (!waitnotice) {
-        			flashObj.sendToServer("NOTICE " + sChan + " " + sNickFrom + " : " + ouserMe.nick + " " + langr.l_noticesoff);
-        			waitnotice = true;
-	            	setTimeout(function() {
-	            	waitnotice = false;
-	           		}, 5000);
-	    		}
 			}
-        }	
+			else {
+				if (!waitnotice) {
+					flashObj.sendToServer("NOTICE " + sChan + " " + sNickFrom + " : " + ouserMe.nick + " " + langr.l_noticesoff);
+					waitnotice = true;
+					setTimeout(function () {
+						waitnotice = false;
+					}, 5000);
+				}
+			}
+		}
 		else {
-        	//Update(11-Aug-2016): protection against time reply flooding. --Mike
+			//Update(11-Aug-2016): protection against time reply flooding. --Mike
 			if (!waittimereply) {
 				var sRpl = sMessage.substr(sMessage.indexOf("\2", 1) + 1);
 				sRpl = sRpl.substring(0, 50);
 				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + getUserLabel(sNickFrom) + "'s " + langr.l_localtime + " " + sRpl + "</span></span>");
-	        	waittimereply = true;
-	            setTimeout(function() {
-	            	waittimereply = false;
-	           	}, 5000);
-	    	}
-		}				
-                  
-    }
+				waittimereply = true;
+				setTimeout(function () {
+					waittimereply = false;
+				}, 5000);
+			}
+		}
+
+	}
 }
 
 function onNoticeChanBroadcast(sNickFrom, sChan, sMessage) {
-    if (sMessage == XmlNullChar) sMessage = '';
-    fnAppendText("<div class='broadcastmessage'><span class='broadcasttitlecr'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_owner"] + "' border='0' class='lvuitemico' />&nbsp;Chat Room Broadcast:</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
+	if (sMessage == XmlNullChar) sMessage = '';
+	fnAppendText("<div class='broadcastmessage'><span class='broadcasttitlecr'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_owner"] + "' border='0' class='lvuitemico' />&nbsp;Chat Room Broadcast:</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
 	sendTostatus("<div class='broadcastmessage'><span class='broadcasttitlecr'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_owner"] + "' border='0' class='lvuitemico' />&nbsp;Chat Room Broadcast:</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
 }
 
 function onNoticeServerBroadcast(sNickFrom, sMessage) {
-    if (sMessage == XmlNullChar) sMessage = '';
-    fnAppendText("<div class='broadcastmessage'><span class='broadcasttitlesrv'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_staff"] + "' border='0' class='lvuitemico' />&nbsp;Server Broadcast:</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
+	if (sMessage == XmlNullChar) sMessage = '';
+	fnAppendText("<div class='broadcastmessage'><span class='broadcasttitlesrv'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_staff"] + "' border='0' class='lvuitemico' />&nbsp;Server Broadcast:</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
 	sendTostatus("<div class='broadcastmessage'><span class='broadcasttitlesrv'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_staff"] + "' border='0' class='lvuitemico' />&nbsp;Server Broadcast:</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
 }
 
@@ -1779,7 +1889,7 @@ function onPrivmsg(sNickFrom, sChan, sMessage) {
 						if (!waitversion) {
 							flashObj.sendToServerQue(sCmd);
 							waitversion = true;
-							setTimeout(function() {
+							setTimeout(function () {
 								waitversion = false;
 							}, 1000);
 						}
@@ -1820,12 +1930,12 @@ function onPrivmsgPr(sNickFrom, sChan, sNickTo, sMessage) {
 				delete dMyDate;
 				dMyDate = new Date();
 				sCmd = "NOTICE " + m_sChan + " " + sNickFrom + " :\2TIME\2" + flashObj.GetMyDateTime();
-				
+
 				//Update(01-Oct-2014): (cont... refer earlier code) protection against time and version reply flooding. --Mike
 				if (!waittime) {
 					flashObj.sendToServerQue(sCmd);
 					waittime = true;
-					setTimeout(function() {
+					setTimeout(function () {
 						waittime = false;
 					}, 1000);
 				}
@@ -1876,30 +1986,30 @@ function on302(sNickFrom, sMessage) {
 }
 
 function UpdateIdent(sNickFrom, sUserHost) {
-    var istrtloc = sUserHost.indexOf("=") + 1;
-    var iendloc = sUserHost.indexOf("@");
-    var nickloc = sUserHost.slice(0, istrtloc - 1);
-    var preidentloc = sUserHost.slice(istrtloc, iendloc);
-    var identloc;
-    if (preidentloc.charAt(0) == "+" || preidentloc.charAt(0) == "-") identloc = preidentloc.slice(1);
-    else identloc = preidentloc;
-    if (nickloc == ouserMe.nick) { 
+	var istrtloc = sUserHost.indexOf("=") + 1;
+	var iendloc = sUserHost.indexOf("@");
+	var nickloc = sUserHost.slice(0, istrtloc - 1);
+	var preidentloc = sUserHost.slice(istrtloc, iendloc);
+	var identloc;
+	if (preidentloc.charAt(0) == "+" || preidentloc.charAt(0) == "-") identloc = preidentloc.slice(1);
+	else identloc = preidentloc;
+	if (nickloc == ouserMe.nick) {
 		if (ouserMe.ident == null) {
-           	ouserMe.fullident = identloc;
-           	ouserMe.ident = identloc.slice(identloc.lastIndexOf(".") + 1);
-       	}       	
-       	fnProcessPendingActionsList(sNickFrom, "kickban@ident", plvi);
+			ouserMe.fullident = identloc;
+			ouserMe.ident = identloc.slice(identloc.lastIndexOf(".") + 1);
+		}
+		fnProcessPendingActionsList(sNickFrom, "kickban@ident", plvi);
 	}
-    else {
-    	var plvi = olvUsers.getItemByName(nickloc);
-    	if (plvi.pUser != undefined) {    	
-        	if (plvi.pUser.ident == null) {
-            	plvi.pUser.fullident = identloc;
-            	plvi.pUser.ident = identloc.slice(identloc.lastIndexOf(".") + 1);
-        	}       	
-        	fnProcessPendingActionsList(sNickFrom, "kickban@ident", plvi);
-        }	
-    }
+	else {
+		var plvi = olvUsers.getItemByName(nickloc);
+		if (plvi.pUser != undefined) {
+			if (plvi.pUser.ident == null) {
+				plvi.pUser.fullident = identloc;
+				plvi.pUser.ident = identloc.slice(identloc.lastIndexOf(".") + 1);
+			}
+			fnProcessPendingActionsList(sNickFrom, "kickban@ident", plvi);
+		}
+	}
 }
 function fnProcessPendingActionsList(sNickFrom, sWaitingOn, plvi) {
 	if (lstPendingActions.length > 0) {
@@ -1929,7 +2039,7 @@ function on822Chan(sNickFrom, sChan, sMessage) {
 			oUser.awaymsg = sMessage;
 			if (bDspStatusChg != false) {
 				if (oUser.ignore == false || oUser.ilevel > IsSuperOwner) {
-               		if (sMessage.length > 0) {
+					if (sMessage.length > 0) {
 						fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((bTagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(sNickFrom) + "</span>") : getUserLabel(sNickFrom)) + " " + langr.l_wentaway_a + " " + langr.l_wentaway_b + " " + ParseTextMessage(sMessage) + "</span></span>");
 					}
 					else {
@@ -2072,7 +2182,7 @@ function onNickMe(sNewNick) {
 }
 function onChanMode(sSender, sModes, sChan) {
 	//Mike Addon to Fix null mode
-    Modes[0] = Modes[0].replace("null","");
+	Modes[0] = Modes[0].replace("null", "");
 	//ToDo:
 	var bSignAdd = true, b_xm_ops = false;
 	var bModeFound = false, aSubPos = new Array();
@@ -2151,13 +2261,13 @@ function onChanMode(sSender, sModes, sChan) {
 	else Modes[0] = Modes[0] + sTmpStrAdd;
 
 	//if (sTmpStrSubrem.length > 0 || sTmpStrAdd.length > 0) {
-		UpdateLblModes();
-		UpdateChatRoomIcon();
-		fnAppendText("<span class='msgfrmtparent'><span class='modechange'>" + cmdIndChar + " " + getUserLabel(sSender) + " " + langr.l_changedmodes + " " + sModes + "</span></span>");
+	UpdateLblModes();
+	UpdateChatRoomIcon();
+	fnAppendText("<span class='msgfrmtparent'><span class='modechange'>" + cmdIndChar + " " + getUserLabel(sSender) + " " + langr.l_changedmodes + " " + sModes + "</span></span>");
 	//}
 
 	if (b_xm_ops == true) {
-	   var nothing = '';
+		var nothing = '';
 		updateUserIcon(ouserMe, puicoMe, plbMem, nothing);
 		olvUsers.redrawList();
 	}
@@ -2191,30 +2301,30 @@ function on324(sChan, sNModes, s_l_Mode, s_k_Mode) {
 	var nothing = '';
 	updateUserIcon(ouserMe, puicoMe, plbMe, nothing);
 }
-function sendToaccess(str) {	
+function sendToaccess(str) {
 	$("#accessPane").contents().find("#accessBody").append(str);
 }
 var acount = 0;
 function onAccessNRelatedReplies(numeric, srv_message) {
 	var astr = numeric + " " + srv_message;
 	var aentry = astr.split(" ");
-	if ($('#accessContainer').is(':visible'))  { 
-		if (ouserMe.ilevel >= IsSuperOwner) {	
-		    if (numeric == "801") { $("#accessPane").contents().find("#accessBody").empty(); flashObj.sendToServer("access " + m_sChan + " list"); }		
+	if ($('#accessContainer').is(':visible')) {
+		if (ouserMe.ilevel >= IsSuperOwner) {
+			if (numeric == "801") { $("#accessPane").contents().find("#accessBody").empty(); flashObj.sendToServer("access " + m_sChan + " list"); }
 			if (numeric == "803") { acount = 1; }
 			if (numeric == "804") {
 				var abywho = aentry[8].split("!");
-				var anotes = aentry.slice(9).join(" ");	
-		    	if (aentry[5] == "OWNER") { var aicon = "<i style=\"color:#D7B700;\" class=\"fa fa-legal\"></i>"; }
-		    	else if (aentry[5] == "HOST") { var aicon = "<i style=\"color:brown;\" class=\"fa fa-legal\"></i>"; }
-		    	else if (aentry[5] == "DENY") { var aicon = "<i style=\"color:red;\" class=\"fa fa-ban\"></i>"; }
-		    	else if (aentry[5] == "GRANT") { var aicon = "<i style=\"color:orange;\" class=\"fa fa-star\"></i>"; }
-		    	else if (aentry[5] == "VOICE") { var aicon = "<i style=\"color:purple;\" class=\"fa fa-microphone\"></i>"; }
-		    	else { var aicon = ""; }
+				var anotes = aentry.slice(9).join(" ");
+				if (aentry[5] == "OWNER") { var aicon = "<i style=\"color:#D7B700;\" class=\"fa fa-legal\"></i>"; }
+				else if (aentry[5] == "HOST") { var aicon = "<i style=\"color:brown;\" class=\"fa fa-legal\"></i>"; }
+				else if (aentry[5] == "DENY") { var aicon = "<i style=\"color:red;\" class=\"fa fa-ban\"></i>"; }
+				else if (aentry[5] == "GRANT") { var aicon = "<i style=\"color:orange;\" class=\"fa fa-star\"></i>"; }
+				else if (aentry[5] == "VOICE") { var aicon = "<i style=\"color:purple;\" class=\"fa fa-microphone\"></i>"; }
+				else { var aicon = ""; }
 				sendToaccess("<tr id=\"accessholder_" + acount + "\"><td class=\"access-icon\">" + aicon + "</td><td id=\"accesstype_" + acount + "\" class=\"access-type\">" + aentry[5] + "</td><td id=\"accessmask_" + acount + "\" class=\"access-mask\">" + aentry[6] + "</td><td class=\"access-time\">" + aentry[7] + "</td><td class=\"access-who\">" + abywho[0] + "</td><td class=\"access-notes\">" + anotes.substr(1) + "</td><td class=\"access-delete\"><a id=\"accessdelete_" + acount + "\" style=\"color:red;\" href=\"#\"><i class=\"fa fa-user-times\"></i></a></td></tr>");
 				acount++;
 			}
-		}	
+		}
 	}
 	else {
 		if (numeric == "801") {
@@ -2224,7 +2334,7 @@ function onAccessNRelatedReplies(numeric, srv_message) {
 	}
 	if (numeric == '914') {
 		var ereason = aentry.slice(4).join(" ").substr(1);
-		fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error + " " + ereason + "</span></span>");		
+		fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error + " " + ereason + "</span></span>");
 	}
 	/*
 	
@@ -2250,29 +2360,29 @@ function onAccessNRelatedReplies(numeric, srv_message) {
 
 }
 // Room Properties
-function sendToprops(str) {	
+function sendToprops(str) {
 	$("#propsPane").contents().find("#propsdebug").append(str);
 }
 function onPropReplies(numeric, sChan, srv_message) {
-	if ($('#propsContainer').is(':visible'))  { 
+	if ($('#propsContainer').is(':visible')) {
 		sendToprops(numeric + ": " + srv_message + "&#xA;");
 		var pentry = srv_message.split(" ");
 		if (numeric == 818) {
-			var propinfo = pentry.slice(5).join(" ").substring(1);	
-			if (pentry[4] === 'ChanSuperOwnerID') { 
-				$("#propsPane").contents().find("#superownername").val(propinfo);	
+			var propinfo = pentry.slice(5).join(" ").substring(1);
+			if (pentry[4] === 'ChanSuperOwnerID') {
+				$("#propsPane").contents().find("#superownername").val(propinfo);
 			}
-			else if	(pentry[4] === 'TOPIC') {
-				$("#propsPane").contents().find("#topicbox").val(propinfo);	
+			else if (pentry[4] === 'TOPIC') {
+				$("#propsPane").contents().find("#topicbox").val(propinfo);
 			}
-			else if	(pentry[4] === 'ONJOIN') {
-				$("#propsPane").contents().find("#onjoinbox").val(propinfo);	
+			else if (pentry[4] === 'ONJOIN') {
+				$("#propsPane").contents().find("#onjoinbox").val(propinfo);
 			}
-			else if	(pentry[4] === 'OWNERKEY') {
-				$("#propsPane").contents().find("#ownerkeybox").val(propinfo);	
+			else if (pentry[4] === 'OWNERKEY') {
+				$("#propsPane").contents().find("#ownerkeybox").val(propinfo);
 			}
-			else if	(pentry[4] === 'HOSTKEY') {
-				$("#propsPane").contents().find("#hostkeybox").val(propinfo);	
+			else if (pentry[4] === 'HOSTKEY') {
+				$("#propsPane").contents().find("#hostkeybox").val(propinfo);
 			}
 			else if (pentry[4] === 'CATEGORY') {
 				var pcat = propinfo.toUpperCase();
@@ -2283,40 +2393,40 @@ function onPropReplies(numeric, sChan, srv_message) {
 				var plang = plang.split("-");
 				$("#propsPane").contents().find("#languageselect").val(plang[0]);
 			}
-			else if	(pentry[4] === 'LOCKED') {
-				if (srv_message.includes("CATEGORY")) { 
-					$("#propsPane").contents().find("#categorylock").prop( "checked", true );
+			else if (pentry[4] === 'LOCKED') {
+				if (srv_message.includes("CATEGORY")) {
+					$("#propsPane").contents().find("#categorylock").prop("checked", true);
 					$("#propsPane").contents().find("#categoryselect").prop("disabled", true);
 					$("#propsPane").contents().find("#categoryset").prop("disabled", true);
 				}
-				if (srv_message.includes("LANGUAGE")) { 
-					$("#propsPane").contents().find("#languagelock").prop( "checked", true );
+				if (srv_message.includes("LANGUAGE")) {
+					$("#propsPane").contents().find("#languagelock").prop("checked", true);
 					$("#propsPane").contents().find("#languageselect").prop("disabled", true);
 					$("#propsPane").contents().find("#languageset").prop("disabled", true);
 				}
-				if (srv_message.includes("HOSTKEY")) { 
-					$("#propsPane").contents().find("#hostkeylock").prop( "checked", true );
+				if (srv_message.includes("HOSTKEY")) {
+					$("#propsPane").contents().find("#hostkeylock").prop("checked", true);
 					$("#propsPane").contents().find("#hostkeybox").prop("disabled", true);
 					$("#propsPane").contents().find("#hostkeyset").prop("disabled", true);
 				}
-				if (srv_message.includes("OWNERKEY")) { 
-					$("#propsPane").contents().find("#ownerkeylock").prop( "checked", true );
+				if (srv_message.includes("OWNERKEY")) {
+					$("#propsPane").contents().find("#ownerkeylock").prop("checked", true);
 					$("#propsPane").contents().find("#ownerkeybox").prop("disabled", true);
 					$("#propsPane").contents().find("#ownerkeyset").prop("disabled", true);
-				}	
-				if (srv_message.includes("TOPIC")) { 
-					$("#propsPane").contents().find("#topiclock").prop( "checked", true );
+				}
+				if (srv_message.includes("TOPIC")) {
+					$("#propsPane").contents().find("#topiclock").prop("checked", true);
 					$("#propsPane").contents().find("#topicbox").prop("disabled", true);
 					$("#propsPane").contents().find("#topicset").prop("disabled", true);
 				}
-				if (srv_message.includes("ONJOIN")) { 
-					$("#propsPane").contents().find("#onjoinlock").prop( "checked", true );
+				if (srv_message.includes("ONJOIN")) {
+					$("#propsPane").contents().find("#onjoinlock").prop("checked", true);
 					$("#propsPane").contents().find("#onjoinbox").prop("disabled", true);
 					$("#propsPane").contents().find("#onjoinset").prop("disabled", true);
 				}
 			}
 		}
-	}	
+	}
 }
 
 
@@ -2407,12 +2517,12 @@ function onUserMode(sSender, modeoplist, sChan) {
 	if (bMeModeChanged == true) {
 		var nothing = '';
 		updateUserIcon(ouserMe, puicoMe, plbMe, nothing);
-		
+
 		formatUserLabel(ouserMe, plbMe);
 		//debugOutput("-", "onUserMode");
-		
+
 		updateLVIMenu();
-		
+
 		fnAppendText("<span class='msgfrmtparent'><span class='modechangeme'>" + cmdIndChar + " " + getUserLabel(sSender) + " " + langr.l_haschangedmodesto + " " + sTmp + "</span></span>");
 	}
 }
@@ -2425,23 +2535,23 @@ function onKnock(sFrom, sChan, sMessage) {
 	if (sMessage != '') {
 		if (ouserMe.ilevel >= IsOwner) {
 			if (!waitknock) {
-		    	var sFromNick = sFrom.split("!");
+				var sFromNick = sFrom.split("!");
 				var sFromIdent = sFromNick[1].match(/\./g).length;
 				var sFromIdentGate = sFromNick[1].split(".");
 				var sFromFinalGate = sFromIdentGate[sFromIdent].split("@");
-		    	if (sMessage.length > 0) {
-		        	sendTostatus("<span class='knock'>" + cmdIndChar + " " + getUserLabel(sFromNick[0]) + " (" + sFromFinalGate[0] + ") " + langr.l_knocked_a + " " + langr.l_knocked_b + " " + ParseTextMessage(sMessage) + "</span>");
-		    	}
+				if (sMessage.length > 0) {
+					sendTostatus("<span class='knock'>" + cmdIndChar + " " + getUserLabel(sFromNick[0]) + " (" + sFromFinalGate[0] + ") " + langr.l_knocked_a + " " + langr.l_knocked_b + " " + ParseTextMessage(sMessage) + "</span>");
+				}
 				else {
-		        	sendTostatus("<span class='knock'>" + cmdIndChar + " " + getUserLabel(sFrom) + " " + langr.l_knocked_a + "</span>");
+					sendTostatus("<span class='knock'>" + cmdIndChar + " " + getUserLabel(sFrom) + " " + langr.l_knocked_a + "</span>");
 				}
 				waitknock = true;
-		      	setTimeout(function() {
-		  			waitknock = false;
-		    	}, 60000);
+				setTimeout(function () {
+					waitknock = false;
+				}, 60000);
 			}
 		}
-	}	
+	}
 }
 
 //Invite Flood Protection
@@ -2469,7 +2579,7 @@ function checkInviteFlood() {
 }
 
 function onInvite(sNickFrom, sNickTo, sChanFor) {
-	if (bInviteOn == false) {	
+	if (bInviteOn == false) {
 		if (checkInviteFlood() == true) {
 			if (InviteBlockAlert == false) {
 				fnAppendText("<span class='msgfrmtparent'><span class='invite'><i>" + langr.l_blockedinviteflood + "</i></span></span>");
@@ -2480,14 +2590,14 @@ function onInvite(sNickFrom, sNickTo, sChanFor) {
 		}
 
 		if (isHtmlTag(sChanFor) == false) {
-		    sChanForR = FixChannelEncoding(sChanFor);
-		    var sURI = sSiteURL + "c/?cn=" + DecodeRoomName(sChanForR);
+			sChanForR = FixChannelEncoding(sChanFor);
+			var sURI = sSiteURL + "c/?cn=" + DecodeRoomName(sChanForR);
 			fnAppendText("<span class='msgfrmtparent'><span class='invite'>" + cmdIndChar + " " + getUserLabel(sNickFrom) + " " + langr.l_hasinvitedyou + "<u><a href='" + sURI + "' target='_blank'>" + DecodeRoomName(sChanForR) + "</a></u>.'</span></span>");
 		}
 		else {
 			fnAppendText("<span class='msgfrmtparent'><span class='invite'><i>" + cmdIndChar + " " + langr.l_blockedinvite_a + " \"" + getUserLabel(sNickFrom) + "\" " + langr.l_blockedinvite_b + "</i></span></span>");
 		}
-	}				
+	}
 }
 
 function onDataIRC(sNickBy, sType, sMessage) {
@@ -2502,7 +2612,6 @@ function onDataIRC(sNickBy, sType, sMessage) {
 
 function onDataIRC2(sNickFrom, sChan, sNickTo, sTag, sMessage) {
 	if (sMessage == XmlNullChar) sMessage = '';
-
 	switch (sTag) {
 		case "CMWHISP":
 			customWhispData(sNickFrom, sMessage);
@@ -2537,7 +2646,14 @@ function onErrorReplies(nErrorNum, sNickTo, sTarget, sMessage) {
 			break;
 
 		case "441":
-			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error441 + " \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\"; " + sMessage + "</span></span>");
+			// Update Mike 3/26/2017 error flood protection
+			if (!waiterror) {
+				fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error441 + " \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\"; " + sMessage + "</span></span>");
+				waiterror = true;
+				setTimeout(function () {
+					waiterror = false;
+				}, 3000);
+			}
 			break;
 
 		case "442":
@@ -2571,22 +2687,22 @@ function onErrorReplies(nErrorNum, sNickTo, sTarget, sMessage) {
 			}
 			if (sMessage.indexOf("+u") > -1) {
 				flashObj.sendToServer("KNOCK " + FixChannelEncoding(sTarget) + " 474");
-			}	
+			}
 			//flashObj.sckDisconnect();
 			break;
 
 		// Mike Update 04/05/16 Added Key Support
 		case "475":
-            fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error475_a + " \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\" " + langr.l_error475_b + "</span></span>");
-            var strKey = prompt(langr.l_enterkey, "");
-            try {
-                if (strKey.length > 0) {
-                    flashObj.sendToServer("JOIN " + FixChannelEncoding(sTarget) + " " + strKey);
-                }
-            }
-            catch (ex) {
-            }
-            break;
+			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error475_a + " \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\" " + langr.l_error475_b + "</span></span>");
+			var strKey = prompt(langr.l_enterkey, "");
+			try {
+				if (strKey.length > 0) {
+					flashObj.sendToServer("JOIN " + FixChannelEncoding(sTarget) + " " + strKey);
+				}
+			}
+			catch (ex) {
+			}
+			break;
 
 		case "927":
 			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error927 + " \"" + DecodeRoomName(FixChannelEncoding(sTarget)) + "\"; " + sMessage + "</span></span>");
@@ -2596,10 +2712,10 @@ function onErrorReplies(nErrorNum, sNickTo, sTarget, sMessage) {
 			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_error999 + " " + sMessage + "</span></span>");
 			break;
 	}
-	if ($('#chatwindowholder').is(':visible')) {   }
+	if ($('#chatwindowholder').is(':visible')) { }
 	else {
 		clearInterval(chatflash);
-		chatflash = setInterval(function(){ $("#chattab").toggleClass("blinktab"); },600);
+		chatflash = setInterval(function () { $("#chattab").toggleClass("blinktab"); }, 600);
 	}
 }
 
@@ -2918,7 +3034,7 @@ function ListView(pListViewParent) {
 			}
 		}
 		//fnAppendText(JSON.stringify(alvUsers));
-		
+
 	}
 
 	function ptRemItemByName(sNom) {
@@ -3293,7 +3409,7 @@ function mifKickwmsg() {
 	if (kmsg != null) {
 		var sIRCCMD = "KICK " + m_sChan + " " + olvUsers.selectedUser().nick + " " + kmsg;
 		flashObj.sendToServer(sIRCCMD);
-	}	
+	}
 	closeAllMenus();
 }
 function fnIrcKickBan(sMsg, type) {
@@ -3568,7 +3684,7 @@ function getEventObject() {
 
 function onMouseDown(event) {
 	if (_mnuitemselected == true) return;
-	
+
 	closeAllMenus();
 
 
@@ -3605,18 +3721,18 @@ function showMenu(pmnu, event) {
 		var winwidth = $("#whisperwindowadd").width();
 		var winheight = $("#whisperwindowadd").height();
 		if (mousePositionx + menuDimensionx > $("#whisperwindowadd").width()) {
-			var menuPostionx = mousePositionx - menuDimensionx;  
+			var menuPostionx = mousePositionx - menuDimensionx;
 		} else {
 			var menuPostionx = mousePositionx;
 		}
 		if (mousePositiony + menuDimensiony > $("#whisperwindowadd").height()) {
-			var menuPostiony = mousePositiony - menuDimensiony;        	
+			var menuPostiony = mousePositiony - menuDimensiony;
 		} else {
 			var menuPostiony = mousePositiony;
 		}
 	}
-	if (menuPostiony > 0) {  }
-	else { menuPostiony = 20; }	
+	if (menuPostiony > 0) { }
+	else { menuPostiony = 20; }
 	pmnu.style.left = menuPostionx + 'px';
 	pmnu.style.top = menuPostiony + 'px';
 	//pmnu.style.display = 'block';
@@ -3681,21 +3797,21 @@ function getMenu(el) {
 				return 'true';
 			// Mike Addon 04/05/16
 			case 'cpb':
-            	if (ouserMe.ilevel >= IsSuperOwner) { $('.superownermenu').show(); }
-            	else { $('.superownermenu').hide(); }
-                return _pmnucp;
+				if (ouserMe.ilevel >= IsSuperOwner) { $('.superownermenu').show(); }
+				else { $('.superownermenu').hide(); }
+				return _pmnucp;
 
 			case 'lvi':
 				onListUserSelect(_clvicmnu, false);
 				if (ouserMe.ilevel >= IsSuperOwner) { $('.superownermenu').show(); }
-            	else { $('.superownermenu').hide(); }
+				else { $('.superownermenu').hide(); }
 				return _clvicmnu;
 			case 'lbM':
 				onListUserSelect(_clvicmnu, true);
 				cmnuSelMe = true;
 				SelectLocalUser();
 				if (ouserMe.ilevel >= IsSuperOwner) { $('.superownermenu').show(); }
-            	else { $('.superownermenu').hide(); }
+				else { $('.superownermenu').hide(); }
 				return _clvicmnu;
 			default:
 				if (el.id.indexOf("mi") == 0) return null;
@@ -3763,7 +3879,7 @@ function onMnuUser(lumnu) {
 		else _pmiIU.innerHTML = lang['menuitem_ignore_false'];
 
 		if ((puser.ilevel > IsSuperOwner || lumnu == true) && (staffIgnore.indexOf(puser.nick) <= -1)) { fnMnuDisable(true, _pmiIU); }
-        else { fnMnuDisable(false, _pmiIU); }
+		else { fnMnuDisable(false, _pmiIU); }
 
 		//tag menuitem
 		if (puser.tagged == true) _pmiTUU.innerHTML = lang['menuitem_tagged_true'];
@@ -3986,7 +4102,7 @@ function cmenuShow(event) {
 
 function iniContextMenu() {
 	_pmnucp = getById('cmenuCP'); _pmnuhost = getById('mnuHost'); _pmnuhelpop = getById('mnuHelpOp'); _pmnuuser = getById('mnuUser');
-	_pwndChat = getById('chatwindowholder');
+	_pwndChat = getById('chatwindowholder'); //'chatwindowholder' to make whisper input box context menu work. Update made by Mike/err0r.
 	_pcpbody = (isIE) ? ChatPane.document.body : pChatPane.contentDocument.body;
 	_pstatusbody = (isIE) ? StatusPane.document.body : pStatusPane.contentDocument.body;
 	_ptxsend = document.getElementById("txSend");
@@ -4037,7 +4153,7 @@ function iniContextMenu() {
 	_pcpbody.onmousedown = onMouseDown;
 	_pcpbody.oncontextmenu = cmenuShow;
 
-   //debugOutput("meObj TypeOf: " + typeof(ouserMe), "iniContextMenu");
+	//debugOutput("meObj TypeOf: " + typeof(ouserMe), "iniContextMenu");
 	updateLVIMenu();
 }
 //---- </menu>
@@ -4092,13 +4208,13 @@ function UpdateUI(puser) {
 
 	//ignore button
 	if (puser.ilevel > IsSuperOwner && staffIgnore.indexOf(puser.nick) <= -1) {
-        pBtnIgnore.disable = true;
-        UpdateBtnImage(pBtnIgnore, imgBtnIgnoreDisabled);
-    }
-    else {
-        pBtnIgnore.disable = false;
-        UpdateBtnImage(pBtnIgnore, imgBtnIgnoreEnabled);
-    }
+		pBtnIgnore.disable = true;
+		UpdateBtnImage(pBtnIgnore, imgBtnIgnoreDisabled);
+	}
+	else {
+		pBtnIgnore.disable = false;
+		UpdateBtnImage(pBtnIgnore, imgBtnIgnoreEnabled);
+	}
 
 	//tag button
 	UpdateBtnImage(pBtnTag, imgBtnTagEnabled);
@@ -4221,7 +4337,7 @@ function WhispViewProfile(user) {
 		else {
 			var cmdGetProfile = "PID " + user;
 			flashObj.sendToServer(cmdGetProfile);
-		}	
+		}
 	}
 }
 //---- Misc.
@@ -4279,7 +4395,24 @@ function fnIgnore() {
 		fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + ignoretext + plvi.pUser.nick + "</span></span>");
 	}
 }
-
+// Update 3/26/2017 Mike Manual Ignore User
+function fnIgnoreManual(sender) {
+	var plvi = olvUsers.getItemByName(sender);
+	if (plvi == null) return;
+	if (plvi.pUser.ignore == false) {
+		plvi.pUser.ignore = true;
+		fnAddIdentToIgnoreHash(plvi.pUser.ident);
+		var ignoretext = langr.l_nowignoring;
+	}
+	else {
+		plvi.pUser.ignore = false;
+		fnRemIdentFromIgnoreHash(plvi.pUser.ident);
+		var ignoretext = langr.l_nolongerignoring;
+	}
+	formatUserLabel(plvi.pUser, plvi.pLabel);
+	updateUserIcon(plvi.pUser, plvi.pIco, plvi.pLabel, plvi.pIggy);
+	fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + ignoretext + plvi.pUser.nick + "</span></span>");
+}
 function fnTag() {
 	//debugger;
 	if (cmnuSelMe == false) {
@@ -4319,48 +4452,48 @@ var wndChatOptions = null;
 
 function OpenChatOptionsWnd() {
 	$('#optionsPane').attr('src', sFUIDIR2 + 'nbchatoptions.htm?v2');
-	$('.pwindows').css('z-index','200');
+	$('.pwindows').css('z-index', '200');
 	$('#optionsContainer').css('z-index', '201');
 	$('#optionsContainer').fadeIn();
 }
 // Mike Addon Modes
 function OpenModesOptionsWnd() {
-	if (ouserMe.ilevel >= IsSuperOwner ) {
+	if (ouserMe.ilevel >= IsSuperOwner) {
 		$('#modesPane').attr('src', sFUIDIR2 + 'nbchatmodes.htm');
-		$('.pwindows').css('z-index','200');
+		$('.pwindows').css('z-index', '200');
 		$('#modesContainer').css('z-index', '201');
 		$('#modesContainer').fadeIn();
 	}
 	else {
 		fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorslevel + "</span></span>");
 	}
-	closeAllMenus();	
+	closeAllMenus();
 }
 // Mike Addon Access
 function OpenAccessOptionsWnd() {
-	if (ouserMe.ilevel >= IsSuperOwner ) {
+	if (ouserMe.ilevel >= IsSuperOwner) {
 		$('#accessPane').attr('src', sFUIDIR2 + 'nbchataccess.htm');
-		$('.pwindows').css('z-index','200');
+		$('.pwindows').css('z-index', '200');
 		$('#accessContainer').css('z-index', '201');
 		$('#accessContainer').fadeIn();
 	}
 	else {
 		fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorslevel + "</span></span>");
 	}
-	closeAllMenus();	
+	closeAllMenus();
 }
 // Mike Addon Room Props Addon
 function OpenPropsOptionsWnd() {
-	if (ouserMe.ilevel >= IsSuperOwner ) {
+	if (ouserMe.ilevel >= IsSuperOwner) {
 		$('#propsPane').attr('src', sFUIDIR2 + 'nbchatprops.htm');
-		$('.pwindows').css('z-index','200');
+		$('.pwindows').css('z-index', '200');
 		$('#propsContainer').css('z-index', '201');
 		$('#propsContainer').fadeIn();
 	}
 	else {
 		fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorslevel + "</span></span>");
 	}
-	closeAllMenus();	
+	closeAllMenus();
 }
 // helper functions
 function IsNum(v0) {
@@ -4409,10 +4542,10 @@ function fnUpdate() {
 	}
 }
 function popupwindow(url, title, w, h) {
-  var left = (screen.width/2)-(w/2);
-  var top = (screen.height/2)-(h/2);
-  return window.open(url, title, 'toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width='+w+', height='+h+', top='+top+', left='+left);
-} 
+	var left = (screen.width / 2) - (w / 2);
+	var top = (screen.height / 2) - (h / 2);
+	return window.open(url, title, 'toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=' + w + ', height=' + h + ', top=' + top + ', left=' + left);
+}
 function LoadDummyUsers() {
 	try {
 		ouserMe = { nick: null, ident: null, host: null, ilevel: IsStaff, iprofile: NoProfile, away: false, awaymsg: "", voice: false };
@@ -4507,17 +4640,17 @@ function sendTostatus(sstr) {
 		pStatusPane.contentDocument.body.appendChild(oSpan);
 		if (bSkipStatusScrollCall == false) { autoStatusScroll(pStatusPane.contentDocument.body); }
 	}
-	
-		
-			
+
+
+
 }
 function clearStatusPane() {
 	pStatusPane.contentDocument.body.innerHTML = '';
 	$('#statuscount').text('0');
 }
 function OpenInNewTab(url) {
-  var win = window.open(url, '_blank');
-  win.focus();
+	var win = window.open(url, '_blank');
+	win.focus();
 }
 // Whisper Tabs
 var WhisperTabs = new Array();
@@ -4569,10 +4702,11 @@ function WhisperTabManager(sNickFrom, sChan, sNickTo, sMessage, type) {
 			if (bWhispOff == false || puser.ilevel >= IsStaff) {
 				//create new window
 				var tabWhisp = preCreateWhispTab(puser, type);
-				str123 = "<div class='whispreq' id='" + tabWhisp.whsptid + "'><div id='abc123' style='color: #8b0000'><span class='cpnickuser'>" + getUserLabel(sNickFrom) + "</span> " + langr.l_whisperacceptdecline_a + " (<a href='javascript:;' onclick='subacceptWhispertab(\"" + tabWhisp.whsptid + "\", this);'>" + langr.l_whisperacceptdecline_b + "</a> | <a href='javascript:;' onclick='subdeclineWhispertab(\"" + tabWhisp.whsptid + "\", this);'>" + langr.l_whisperacceptdecline_c + "</a>).</div><div><span style='color: #8b0000'>" + langr.l_whisperacceptdecline_d + "</span> " + ParseTextMessage(sMessage) + "</div></div>";
+				// Mike Update 3/25/2017 No emoticons in Accept Decline Whisper Update 3/26/2017 Added Ignore User
+				str123 = "<div class='whispreq' id='" + tabWhisp.whsptid + "'><div id='abc123' style='color: #8b0000'><span class='cpnickuser'>" + getUserLabel(sNickFrom) + "</span> " + langr.l_whisperacceptdecline_a + " (<a href='javascript:;' onclick='subacceptWhispertab(\"" + tabWhisp.whsptid + "\", this);'>" + langr.l_whisperacceptdecline_b + "</a> | <a href='javascript:;' onclick='subdeclineWhispertab(\"" + tabWhisp.whsptid + "\", this);'>" + langr.l_whisperacceptdecline_c + "</a> | <a href='javascript:;' onclick='subdeclineandIgnoreWhispertab(\"" + tabWhisp.whsptid + "/" + sNickFrom + "\", this);'>" + langr.l_whisperacceptdecline_e + "</a>).</div><div><span style='color: #8b0000'>" + langr.l_whisperacceptdecline_d + "</span> " + ParseTextMessage2(sMessage) + "</div></div>";
 				var nd = new Date();
 				var tnd = "<span class='timestamp'>[" + FormatTimeNums(TwelveHour(nd.getHours())) + ":" + FormatTimeNums(nd.getMinutes()) + "" + amPm(nd.getHours()) + "]</span>&nbsp;";
-				sendTostatus("<span id='" + tabWhisp.whsptid + "' class='status-whisper'>" + langr.l_whisperattempt_a + " <b>" + getUserLabel(sNickFrom) + "</b>. " + langr.l_whisperattempt_b + " " + ParseTextMessage(sMessage) + "</span>");
+				sendTostatus("<span id='" + tabWhisp.whsptid + "' class='status-whisper'>" + langr.l_whisperattempt_a + " <b>" + getUserLabel(sNickFrom) + "</b>. " + langr.l_whisperattempt_b + " " + ParseTextMessage2(sMessage) + "</span>");
 				fnAppendText(str123);
 				tabWhisp.inmsgs = sMessage;
 				tabWhisp.inmsgscount = 0;
@@ -4581,12 +4715,12 @@ function WhisperTabManager(sNickFrom, sChan, sNickTo, sMessage, type) {
 			}
 			else {
 				flashObj.sendToServerQue("DATA " + m_sChan + " " + sNickFrom + " CMWHISP :WHISPOFF");
-			}            
+			}
 		}
-		if ($('#chatwindowholder').is(':visible')) {   }
+		if ($('#chatwindowholder').is(':visible')) { }
 		else {
 			clearInterval(chatflash);
-			chatflash = setInterval(function(){ $("#chattab").toggleClass("blinktab"); },600);
+			chatflash = setInterval(function () { $("#chattab").toggleClass("blinktab"); }, 600);
 		}
 		if (bSndWhisp != false && bWhispOff == false) flashObj.playWhispSnd();
 	}
@@ -4596,18 +4730,18 @@ function WhisperTabManager(sNickFrom, sChan, sNickTo, sMessage, type) {
 			if (WhisperTabs[ret].isloaded == true) {
 				if (WhisperTabs[ret].tabisloaded == false) {
 					var puser = olvUsers.getItemByName(sNickFrom).pUser;
-					if (puser.ilevel >= IsHelpOp) {  WhisperTabs[ret].tmpmessages += '<img unselectable="on" src="' + fnGetIco(puser) + '" border="0" class="lvuitemico" />' + FormatFromByNick(sNickFrom) + ParseTextMessage(sMessage); }
+					if (puser.ilevel >= IsHelpOp) { WhisperTabs[ret].tmpmessages += '<img unselectable="on" src="' + fnGetIco(puser) + '" border="0" class="lvuitemico" />' + FormatFromByNick(sNickFrom) + ParseTextMessage(sMessage); }
 					else { WhisperTabs[ret].tmpmessages += '<span class="cpblankicospace"></span>' + FormatFromByUser(puser) + ParseTextMessage(str); }
 				}
 				else { RenderWhisp2tab(WhisperTabs[ret].receiver, sMessage, WhisperTabs[ret].whsptid); }
 			}
 			else {
 				//render message to the main window
-				fnAppendText("<font face='Tahoma' color='#660099'><b>" + getUserLabel(sNickFrom) + " " + langr.l_whispered + "</b></font>" + ParseTextMessage(sMessage));
+				// Mike Update 3/25/2017 Turned off whisper to main window without accept or decline
+				//fnAppendText("<font face='Tahoma' color='#660099'><b>" + getUserLabel(sNickFrom) + " " + langr.l_whispered + "</b></font>" + ParseTextMessage(sMessage));
 			}
 		}
 	}
-	
 }
 function OpenWhisperTab() {
 	if (pBtnWhisp.disable != true) {
@@ -4642,7 +4776,15 @@ function preCreateWhispTab(puserTo, type) {
 		}
 	}
 	else {
-		fnAppendText("<font face='Tahoma' color='#FF3300'>" + langr.l_whispermax + "</font>");
+		// Update Mike 3/26/2017 error flood protection
+		if (!waiterror) {
+			fnAppendText("<font face='Tahoma' color='#FF3300'>" + langr.l_whispermax + "</font>");
+			waiterror = true;
+			setTimeout(function () {
+				waiterror = false;
+			}, 3000);
+		}
+
 		bInComingWhispTabsMaxed = true;
 	}
 }
@@ -4653,7 +4795,7 @@ function createWhispTab(tabWhisp, type) {
 		var bTabWhispCreateError = false;
 		DebugWhisp('CreatingWhisperWindow', '');
 		DebugWhisp('CreatingWhisperWindowInstance', '');
-		try {	
+		try {
 			tabWhisp.pwnd = "whispertab_" + tabWhisp.whsptid;
 			$('#statusholder').append("<div id='whispertab_" + tabWhisp.whsptid + "' class='activewtab'><span id='whispernick_" + tabWhisp.whsptid + "'>" + tabWhisp.receiver.nick + "</span><span class='tabx'><a id='whisperclose_" + tabWhisp.whsptid + "' href='#'><img src='" + sFUIDIR + "/images/xclose.gif' alt='' /></a></span></div><span id='whisperspace_" + tabWhisp.whsptid + "'>&nbsp;</span>");
 			$('#whisperwindowadd').append("<div style='display:none;' class='whisperwindowholder' id='whisperwindowholder_" + tabWhisp.whsptid + "'><a title='minimize' class='whisperminibtn' id='whispermini_" + tabWhisp.whsptid + "' href='#'><img src='" + sFUIDIR + "/images/minimize.gif' alt='' /></a><a title='close' class='whisperboxclose' id='whispercloseb_" + tabWhisp.whsptid + "' href='#'><img src='" + sFUIDIR + "/images/xclose.gif' alt='' /></a><div class='whisperareawho'><span id='whisperdrag_" + tabWhisp.whsptid + "'><img style='margin-top:-3px;margin-bottom:-3px;' src='" + sFUIDIR + "/images/dragable.gif' alt='' /></span> Whispering: <span>" + tabWhisp.receiver.nick + "</span></div><div class='whisperarea' id='" + tabWhisp.whsptid + "'><iframe class='WhisperPane' id='WhisperPane_" + tabWhisp.whsptid + "' name='WhisperPane' frameborder='0' scrolling='yes' src='" + sFUIDIR + "/nbchatwhisperpane.htm?wnick=" + tabWhisp.whsptid + "' ></iframe></div><div class='whispersendIntputDivb'><input class='whispersendinput' id='whisperSend_" + tabWhisp.whsptid + "' type='text' value='' /></div><div class='sendbuttonsb'><a title='send whisper' id='whisperSendbutton_" + tabWhisp.whsptid + "'><img src='" + sFUIDIR + "/images/button_send_normal.png' /></a></div></div>");
@@ -4663,43 +4805,43 @@ function createWhispTab(tabWhisp, type) {
 			whisperzindex++;
 			whisperoffset = whisperoffset + 20;
 			var whisperoffsetcss = whisperoffset + "px";
-			$( "#whisperwindowholder_" + tabWhisp.whsptid).css({'position': 'absolute', 'top': whisperoffsetcss, 'left': '30%', 'z-index': whisperzindex});
-			$( "#whisperwindowholder_" + tabWhisp.whsptid).fadeIn();
-			$( "#whisperwindowholder_" + tabWhisp.whsptid).draggable({ 
+			$("#whisperwindowholder_" + tabWhisp.whsptid).css({ 'position': 'absolute', 'top': whisperoffsetcss, 'left': '30%', 'z-index': whisperzindex });
+			$("#whisperwindowholder_" + tabWhisp.whsptid).fadeIn();
+			$("#whisperwindowholder_" + tabWhisp.whsptid).draggable({
 				containment: '#whisperwindowadd',
-				cursor: 'move', 
-				drag: function() {
+				cursor: 'move',
+				drag: function () {
 					zWhispWin('on');
 				},
-				stop: function() {
+				stop: function () {
 					zWhispWin('off');
 				}
 			});
-			$( "#whisperwindowholder_" + tabWhisp.whsptid).resizable({
-				containment: '#whisperwindowadd', 
-				resize: function() {
+			$("#whisperwindowholder_" + tabWhisp.whsptid).resizable({
+				containment: '#whisperwindowadd',
+				resize: function () {
 					zWhispWin('on');
 				},
-				stop: function() {
+				stop: function () {
 					zWhispWin('off');
 				}
 			});
-			
+
 		}
-		catch (ex) {	
-			bTabWhispCreateError = true;	
+		catch (ex) {
+			bTabWhispCreateError = true;
 		}
 		if (bTabWhispCreateError == true) {
 			DebugWhisp('WhisperWindowInstanceCreationFailed', '');
 			fnAppendText("<span class='msgfrmtparent'><span class='errortype1'>" + langr.l_errorwhisper + "</span></span>");
 			return null;
 		}
-		DebugWhisp('Setting WhisperWindow Variables', '');	
+		DebugWhisp('Setting WhisperWindow Variables', '');
 		if (tabWhisp.type == WHISP_IN) {
 			tabWhisp.tmpmessages = tabWhisp.inmsgs;
 		}
 		tabWhisp.isloaded = true;
-		tabWhisp.tabisloaded = false;		
+		tabWhisp.tabisloaded = false;
 		return tabWhisp;
 	}
 	catch (ex) {
@@ -4708,8 +4850,8 @@ function createWhispTab(tabWhisp, type) {
 }
 
 function zWhispWin(op) {
-	if (op == 'on') { $( "#whisperwindowadd" ).css('z-index', '100');  }
-	else { $( "#whisperwindowadd" ).css('z-index', ''); }
+	if (op == 'on') { $("#whisperwindowadd").css('z-index', '100'); }
+	else { $("#whisperwindowadd").css('z-index', ''); }
 }
 function acceptWhispertab(whsptid, sender) {
 	for (var i = 0; i < WhisperTabs.length; i++) {
@@ -4733,9 +4875,20 @@ function declineWhispertab(whsptid, sender) {
 		}
 	}
 }
+function declineandIgnoreWhispertab(whsptid, sender) {
+	for (var i = 0; i < WhisperTabs.length; i++) {
+		if (WhisperTabs[i].whsptid == whsptid) {
+			//WHISPDECLINED
+			flashObj.sendToServerQue("DATA " + m_sChan + " " + WhisperTabs[i].receiver.nick + " CMWHISP :WHISPDECLINED");
+			RemoveWhisperTab(i);
+			removeFromStatus(whsptid);
+			sender.parentNode.parentNode.parentNode.parentNode.removeChild(sender.parentNode.parentNode.parentNode);
+		}
+	}
+}
 function RemoveWhisperTab(idx) {
 	if (idx >= 0 && WhisperTabs[idx]) {
-		if (WhisperTabs[idx].isloaded == true) {			
+		if (WhisperTabs[idx].isloaded == true) {
 
 		}
 		WhisperTabs.splice(idx, 1);
@@ -4758,17 +4911,17 @@ function WhispTabIsLoaded(tabWhisp) {
 function RenderWhisper2tabalt(puser, str) {
 	var ret = FindTab(puser);
 	if (ret >= 0) {
-		
+
 		var wts = '';
 		if (bTimeStampOn == true) {
 			var dtTms = new Date();
 			// Update by Mike for timestamp added 21-Nov-2014
 			var tms = "<span class='timestamp'>[" + FormatTimeNums(TwelveHour(dtTms.getHours())) + ":" + FormatTimeNums(dtTms.getMinutes()) + "" + amPm(dtTms.getHours()) + "]</span>&nbsp;&nbsp;";
 			wts = tms;
-		} 
+		}
 		$("#WhisperPane_" + WhisperTabs[ret].whsptid).contents().find("#whisperbody").append("<div>" + wts + str + "</div>");
 		$("#WhisperPane_" + WhisperTabs[ret].whsptid)[0].contentWindow.updateScroll();
-	}	
+	}
 }
 function RenderWhisp2tab(puser, str, tid) {
 	var wts = '';
@@ -4777,11 +4930,11 @@ function RenderWhisp2tab(puser, str, tid) {
 		// Update by Mike for timestamp added 21-Nov-2014
 		var tms = "<span class='timestamp'>[" + FormatTimeNums(TwelveHour(dtTms.getHours())) + ":" + FormatTimeNums(dtTms.getMinutes()) + "" + amPm(dtTms.getHours()) + "]</span>&nbsp;";
 		wts = tms;
-	}  	
-	if (puser.ilevel >= IsHelpOp) { 
+	}
+	if (puser.ilevel >= IsHelpOp) {
 		$("#WhisperPane_" + tid).contents().find("#whisperbody").append("<div>" + wts + "<img unselectable='on' src='" + fnGetIco(puser) + "' border='0' class='lvuitemico' />" + FormatFromByUser(puser) + ParseTextMessage(str) + "</div>");
 	}
-	else { 
+	else {
 		$("#WhisperPane_" + tid).contents().find("#whisperbody").append("<div>" + wts + "<span class='cpblankicospace'></span>" + FormatFromByUser(puser) + ParseTextMessage(str) + "</div>");
 	}
 	$("#WhisperPane_" + tid)[0].contentWindow.updateScroll();
@@ -4798,7 +4951,7 @@ function closeWhispTab(WhispTabNick) {
 			}
 		}
 		catch (ex) {
-		}        
+		}
 		//WHISPWNDCLOSED
 		if (userLeft != true) flashObj.sendToServerQue("DATA " + m_sChan + " " + WhispTabNick + " CMWHISP :WHISPWNDCLOSED");
 	}
@@ -4824,9 +4977,9 @@ function TabWhisperSendMessage(str, tid) {
 			var dtTms = new Date();
 			var tms = "<span class='timestamp'>[" + FormatTimeNums(TwelveHour(dtTms.getHours())) + ":" + FormatTimeNums(dtTms.getMinutes()) + "" + amPm(dtTms.getHours()) + "]</span>&nbsp;";
 			wts = tms;
-		} 
+		}
 		if (ouserMe.ilevel >= IsHelpOp) { $("#WhisperPane_" + tid).contents().find("#whisperbody").append("<div>" + wts + "<img unselectable='on' src='" + fnGetIco(ouserMe) + "' border='0' class='lvuitemico' />" + GetFormattedNickMe() + " : " + ParseTextMessage(FormatSendTextMessage(str)) + "</div>"); }
-		else {	$("#WhisperPane_" + tid).contents().find("#whisperbody").append("<div>" + wts + "<span class='cpblankicospace'></span>" + GetFormattedNickMe() + " : " + ParseTextMessage(FormatSendTextMessage(str)) + "</div>");	}
+		else { $("#WhisperPane_" + tid).contents().find("#whisperbody").append("<div>" + wts + "<span class='cpblankicospace'></span>" + GetFormattedNickMe() + " : " + ParseTextMessage(FormatSendTextMessage(str)) + "</div>"); }
 		flashObj.sendToServer("WHISPER " + m_sChan + " " + whispertabnick + " :" + FormatSendTextMessage(str));
 		$("#WhisperPane_" + tid)[0].contentWindow.updateScroll();
 		return true;
@@ -4848,7 +5001,7 @@ function fnWhispWndCommands(sCmd, tid) {
 	}
 	return false;
 }
-function EndTabs(sNick) {	
+function EndTabs(sNick) {
 	var ret = FindTab(sNick);
 	if (ret >= 0) {
 		var str = "<span class='whisper-hasleft'>" + getUserLabel(sNick) + " " + langr.l_userhasleft + ".</span>";
@@ -4868,7 +5021,7 @@ function iframeLoaded(tid) {
 		$("#WhisperPane_" + WhisperTabs[idf].whsptid).contents().find("#whisperbody").css("font-size", pageFontsize);
 	}
 	setFontswhisper();
-	
+
 	if (WhisperTabs[idf].tmpmessages) {
 		RenderWhisp2tab(WhisperTabs[idf].receiver, WhisperTabs[idf].tmpmessages, WhisperTabs[idf].whsptid);
 	}
@@ -4885,24 +5038,24 @@ function checkFlashtab(tid) {
 	if (!waitwhispersound) {
 		if (bSndWhisp != false && bWhispOff == false) { flashObj.playWhispSnd(); }
 		waitwhispersound = true;
-		setTimeout(function() {
+		setTimeout(function () {
 			waitwhispersound = false;
 		}, 1000);
 	}
-	if ($('#whisperSend_' + tid).is(':focus')) {   }
+	if ($('#whisperSend_' + tid).is(':focus')) { }
 	else {
 		var bi = FindBlink(tid);
-		if (bi >= 0) {  }
+		if (bi >= 0) { }
 		else {
 			var tabBlink = new Object();
 			tabBlink.tid = tid;
-			tabBlink.si = setInterval(function(){ 
+			tabBlink.si = setInterval(function () {
 				$("#whispertab_" + tid).toggleClass("blinkwtab");
-				$("#whisperwindowholder_" + tid).toggleClass("blinkborder");  
-			},600);
+				$("#whisperwindowholder_" + tid).toggleClass("blinkborder");
+			}, 600);
 			BlinkTabs.push(tabBlink);
-		}	
-	}	
+		}
+	}
 }
 function closeAllWhispTabs() {
 	for (var i = 0; i < WhisperTabs.length; i++) RemoveWhisperTab(i);
@@ -4917,56 +5070,56 @@ function whispTabClosed(nick) {
 		}
 	}
 }
-function setFontswhisper() {	
-	if (sendFontfamily != null) { $('.whispersendinput').css('font-family',sendFontfamily); }
-	else { $('.whispersendinput').css('font-family','Tahoma'); }
+function setFontswhisper() {
+	if (sendFontfamily != null) { $('.whispersendinput').css('font-family', sendFontfamily); }
+	else { $('.whispersendinput').css('font-family', 'Tahoma'); }
 	if (sendFontcolor != null) { $('.whispersendinput').css('color', sendFontcolor); }
 	else { $('.whispersendinput').css('color', '#000000'); }
-	if (sendFontweight != null) { $('.whispersendinput').css('font-weight',sendFontweight); }
-	else { $('.whispersendinput').css('font-weight','normal'); }
-	if (sendFontstyle != null) { $('.whispersendinput').css('font-style',sendFontstyle); }
-	else { $('.whispersendinput').css('font-style','normal'); }
+	if (sendFontweight != null) { $('.whispersendinput').css('font-weight', sendFontweight); }
+	else { $('.whispersendinput').css('font-weight', 'normal'); }
+	if (sendFontstyle != null) { $('.whispersendinput').css('font-style', sendFontstyle); }
+	else { $('.whispersendinput').css('font-style', 'normal'); }
 }
 function setFontsizewhisper(fsize) {
 	for (var i = 0; i < WhisperTabs.length; i++) {
 		$("#WhisperPane_" + WhisperTabs[i].whsptid).contents().find("#whisperbody").css("font-size", fsize);
-	}	
+	}
 }
 function selectNickInNicklist(nicktosel) {
- var gnickline = '';
+	var gnickline = '';
 	var gnickline = olvUsers.getItemByName(nicktosel);
 	if (gnickline != '') {
 		$('.lvuitemlb').removeClass('lvuitemlbSelected');
 		$('.lvuitemlb:eq(' + gnickline.id + ')').addClass("lvuitemlbSelected");
-	}    
+	}
 }
-$(document).ready(function() {
+$(document).ready(function () {
 
 
-	$('#viewemotes').on( "click", function() {
-		$( "#emotesContainer" ).toggle( "clip" );
+	$('#viewemotes').on("click", function () {
+		$("#emotesContainer").toggle("clip");
 		return false;
-	});	
+	});
 
-	$('#closeawaymsg').on( "click", function() {
+	$('#closeawaymsg').on("click", function () {
 		$('#wndSetAwayMsgContainer').hide('fast');
 		return false;
 	});
-	$('#saveawaymsg').on( "click", function() {
+	$('#saveawaymsg').on("click", function () {
 		$('#wndSetAwayMsgContainer').fadeOut();
 		sAwayMsg = $('#txAwayMsg').val();
 		flashObj.SaveSingleOption('awaymsg', sAwayMsg);
 		return false;
 	});
-	$('#openawaymsg').on( "click", function() {
+	$('#openawaymsg').on("click", function () {
 		$('#txAwayMsg').val(sAwayMsg);
 		$('#wndSetAwayMsgContainer').show('fast');
 		return false;
 	});
-	$('#statustab').on( "click", function() {
-		$('.activewtab').switchClass( "activewtab", "inactivewtab");
-		$('.activetab').switchClass( "activetab", "inactivetab");
-		$('#statustab').switchClass( "inactivetab", "activetab");
+	$('#statustab').on("click", function () {
+		$('.activewtab').switchClass("activewtab", "inactivewtab");
+		$('.activetab').switchClass("activetab", "inactivetab");
+		$('#statustab').switchClass("inactivetab", "activetab");
 		$('#statuscount').text('0');
 		$('#statuswindowholder').show('fast');
 		$('#chatwindowholder').hide('fast');
@@ -4974,82 +5127,82 @@ $(document).ready(function() {
 		ScrollFixs();
 		return false;
 	});
-	$('#chattab').on( "click", function() {
+	$('#chattab').on("click", function () {
 		clearInterval(chatflash);
-		$('.activewtab').switchClass( "activewtab", "inactivewtab");
-		$('.activetab').switchClass( "activetab", "inactivetab");
-		$('#chattab').switchClass( "blinktab", "inactivetab");
-		$('#chattab').switchClass( "inactivetab", "activetab");
+		$('.activewtab').switchClass("activewtab", "inactivewtab");
+		$('.activetab').switchClass("activetab", "inactivetab");
+		$('#chattab').switchClass("blinktab", "inactivetab");
+		$('#chattab').switchClass("inactivetab", "activetab");
 		$('#chatwindowholder').show('fast');
 		$('#statuswindowholder').hide('fast');
 		$('[id^="whisperwindowholder_"]').hide('fast');
 		ScrollFix();
 		return false;
 	});
-	$('#clearstatusbtn').on( "click", function() {	
+	$('#clearstatusbtn').on("click", function () {
 		clearStatusPane();
 		return false;
 	});
-	$('#btn_sendmsg').on("click", function() {
+	$('#btn_sendmsg').on("click", function () {
 		fnCPAppendText();
 		return false;
 	});
-	$('#btn_sendaction').on("click", function() {
+	$('#btn_sendaction').on("click", function () {
 		onBtnAction();
 		return false;
 	});
-	$('#btn_whisperuser').on("click", function() {
+	$('#btn_whisperuser').on("click", function () {
 		onBtnWhisp();
 		return false;
 	});
-	$('#btn_ignoreuser').on("click", function() {
+	$('#btn_ignoreuser').on("click", function () {
 		onBtnIgnore();
 		return false;
 	});
-	$('#btn_taguser').on("click", function() {
+	$('#btn_taguser').on("click", function () {
 		onBtnTag();
 		return false;
-	});	
-	$('#btn_viewprofile').on("click", function() {
+	});
+	$('#btn_viewprofile').on("click", function () {
 		onBtnViewProfile();
 		return false;
-	});					
-	$(document).on('click', '[id^="whispertab_"]', function(event){
+	});
+	$(document).on('click', '[id^="whispertab_"]', function (event) {
 		var getid = $(this).attr("id").split("_");
 		var tid = getid[1];
 		var bi = FindBlink(tid);
 		if (bi >= 0) { clearInterval(BlinkTabs[bi].si); BlinkTabs.splice(bi, 1); }
-		$('#whispertab_' + tid).switchClass( "inactivewtab", "activewtab");
+		$('#whispertab_' + tid).switchClass("inactivewtab", "activewtab");
 		whisperzindex++;
-		$('#whisperwindowholder_' + tid).css('z-index',whisperzindex);
+		$('#whisperwindowholder_' + tid).css('z-index', whisperzindex);
 		$('#whisperwindowholder_' + tid).show('fast');
 		return false;
 	});
-	$(document).on('focus', '[id^="whisperSend_"]', function(event){
+	$(document).on('focus', '[id^="whisperSend_"]', function (event) {
 		var getid = $(this).attr("id").split("_");
 		var tid = getid[1];
 		var bi = FindBlink(tid);
 		if (bi >= 0) { clearInterval(BlinkTabs[bi].si); BlinkTabs.splice(bi, 1); }
-		$('#whispertab_' + tid).switchClass( "blinkwtab", "activewtab");
-		$('#whisperwindowholder_' + tid).switchClass( "blinkborder", "whisperwindowholder");
+		$('#whispertab_' + tid).switchClass("blinkwtab", "activewtab");
+		$('#whisperwindowholder_' + tid).switchClass("blinkborder", "whisperwindowholder");
 		return false;
-	});	
-	
-	$(document).on('click', '[id^="whispermini_"]', function(event){
+	});
+
+	$(document).on('click', '[id^="whispermini_"]', function (event) {
 		var getid = $(this).attr("id").split("_");
 		var tid = getid[1];
 		$('#whisperwindowholder_' + tid).hide();
-		$('#whispertab_' + tid).switchClass( "activewtab", "inactivewtab");
-		
+		$('#whispertab_' + tid).switchClass("activewtab", "inactivewtab");
+
 		return false;
 	});
-	$(document).on('click', '[id^="whisperwindowholder_"]', function(event){
+	$(document).on('click', '[id^="whisperwindowholder_"]', function (event) {
 		var getid = $(this).attr("id").split("_");
 		var tid = getid[1];
 		whisperzindex++;
-		$('#whisperwindowholder_' + tid).css('z-index',whisperzindex);
+		$('#whisperwindowholder_' + tid).css('z-index', whisperzindex);
 	});
-	$(document).on('click', '[id^="whisperclose_"]', function(event){
+	$(document).on('click', '[id^="whisperclose_"]', function (event) {
 		var getid = $(this).attr("id").split("_");
 		var tid = getid[1];
 		var bi = FindBlink(tid);
@@ -5059,7 +5212,7 @@ $(document).ready(function() {
 		ScrollFix();
 		return false;
 	});
-	$(document).on('click', '[id^="whispercloseb_"]', function(event){
+	$(document).on('click', '[id^="whispercloseb_"]', function (event) {
 		var getid = $(this).attr("id").split("_");
 		var tid = getid[1];
 		var bi = FindBlink(tid);
@@ -5069,10 +5222,10 @@ $(document).ready(function() {
 		ScrollFix();
 		return false;
 	});
-	$(document).on('keypress', '[id^="whisperSend_"]', function(event){
+	$(document).on('keypress', '[id^="whisperSend_"]', function (event) {
 		var getid = $(this).attr("id").split("_");
 		var tid = getid[1];
-		if(event.which == 13) {
+		if (event.which == 13) {
 			var wchr = $(this).val().length;
 			if (wchr > 0) {
 				TabWhisperSendMessage($(this).val(), tid);
@@ -5081,7 +5234,7 @@ $(document).ready(function() {
 			return false;
 		}
 	});
-	 $(document).on('click', '[id^="whisperSendbutton_"]', function(){
+	$(document).on('click', '[id^="whisperSendbutton_"]', function () {
 		var getid = $(this).attr("id").split("_");
 		var tid = getid[1];
 		var wchr = $('#whisperSend_' + tid).val().length;
@@ -5089,73 +5242,73 @@ $(document).ready(function() {
 			TabWhisperSendMessage($('#whisperSend_' + tid).val(), tid);
 			$('#whisperSend_' + tid).val('');
 		}
-		return false;	
+		return false;
 	});
-	$( "#optionsContainer").draggable({ 
+	$("#optionsContainer").draggable({
 		containment: '#whisperwindowadd',
 		cursor: 'move',
 		handle: '#optionsheader',
-		drag: function() {
+		drag: function () {
 			zWhispWin('on');
 		},
-		stop: function() {
+		stop: function () {
 			zWhispWin('off');
 		}
 	});
-	$( "#modesContainer").draggable({ 
+	$("#modesContainer").draggable({
 		containment: '#whisperwindowadd',
 		cursor: 'move',
 		handle: '#modesheader',
-		drag: function() {
+		drag: function () {
 			zWhispWin('on');
 		},
-		stop: function() {
+		stop: function () {
 			zWhispWin('off');
 		}
 	});
-	$( "#accessContainer").draggable({ 
+	$("#accessContainer").draggable({
 		containment: '#whisperwindowadd',
 		cursor: 'move',
 		handle: '#accessheader',
-		drag: function() {
+		drag: function () {
 			zWhispWin('on');
 		},
-		stop: function() {
+		stop: function () {
 			zWhispWin('off');
 		}
 	});
-	$( "#propsContainer").draggable({ 
+	$("#propsContainer").draggable({
 		containment: '#whisperwindowadd',
 		cursor: 'move',
 		handle: '#propsheader',
-		drag: function() {
+		drag: function () {
 			zWhispWin('on');
 		},
-		stop: function() {
+		stop: function () {
 			zWhispWin('off');
 		}
 	});
-	$('.topMenuAction').on( "click", function() {
+	$('.topMenuAction').on("click", function () {
 		if ($("#openCloseIdentifier").is(":hidden")) {
-			$("#slider").animate({ 
+			$("#slider").animate({
 				marginTop: "-341px"
-			}, 600 );
+			}, 600);
 			$("#openCloseIdentifier").show();
 		} else {
-			$("#slider").animate({ 
+			$("#slider").animate({
 				marginTop: "0px"
-			}, 600 );
+			}, 600);
 			$("#openCloseIdentifier").hide();
-			var emotstatus = $('#wndFEmotsstatus').text();			
-			if (emotstatus == '0') {	
+			var emotstatus = $('#wndFEmotsstatus').text();
+			if (emotstatus == '0') {
 				$('#wndFEmots').attr('src', emotsWndURI);
 				$('#wndFEmotsstatus').text('1');
 			}
 		}
 		return false;
 	});
-});	
 
+});
 function randomString(length, chars) {
 	var result = '';
 	for (var i = length; i > 0; --i) result += chars[Math.round(Math.random() * (chars.length - 1))];
@@ -5163,32 +5316,32 @@ function randomString(length, chars) {
 }
 
 function mifPassport() {
-	if (cmnuSelMe == false) { var selUserL = olvUsers.selectedUser();  }
-	else { var selUserL = ouserMe;  }
-	if (selUserL.ident != null) { 
-		setTimeout(fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + selUserL.nick + "'s Passport: " + selUserL.ident + "</span></span>"), 1000);    		
+	if (cmnuSelMe == false) { var selUserL = olvUsers.selectedUser(); }
+	else { var selUserL = ouserMe; }
+	if (selUserL.ident != null) {
+		setTimeout(fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + selUserL.nick + "'s Passport: " + selUserL.ident + "</span></span>"), 1000);
 	}
 	else {
 		var sIRCCMD = "USERHOST " + selUserL.nick;
-    	flashObj.sendToServer(sIRCCMD);
-    	setTimeout(function(){
-    		fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + selUserL.nick + "'s Passport: " + selUserL.ident + "</span></span>")
-    	}, 1000);
+		flashObj.sendToServer(sIRCCMD);
+		setTimeout(function () {
+			fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + selUserL.nick + "'s Passport: " + selUserL.ident + "</span></span>")
+		}, 1000);
 	}
 	closeAllMenus();
 }
 function mifAddAccess(atype) {
-	if (cmnuSelMe == false) { var selUserL = olvUsers.selectedUser();  }
+	if (cmnuSelMe == false) { var selUserL = olvUsers.selectedUser(); }
 	else { var selUserL = ouserMe; }
-	if (selUserL.ident != null) { 
-		flashObj.sendToServer("ACCESS " + m_sChan + " ADD " + atype + " " + selUserL.ident + " 0 :Webchat Access for" + selUserL.nick);	
+	if (selUserL.ident != null) {
+		flashObj.sendToServer("ACCESS " + m_sChan + " ADD " + atype + " " + selUserL.ident + " 0 :Webchat Access for" + selUserL.nick);
 	}
 	else {
 		var sIRCCMD = "USERHOST " + selUserL.nick;
-    	flashObj.sendToServer(sIRCCMD);
-    	setTimeout(function(){
-    		flashObj.sendToServer("ACCESS " + m_sChan + " ADD " + atype + " " + selUserL.ident + " 0 :Webchat Access for " + selUserL.nick);	
-    	}, 1000);
+		flashObj.sendToServer(sIRCCMD);
+		setTimeout(function () {
+			flashObj.sendToServer("ACCESS " + m_sChan + " ADD " + atype + " " + selUserL.ident + " 0 :Webchat Access for " + selUserL.nick);
+		}, 1000);
 	}
 	closeAllMenus();
 }

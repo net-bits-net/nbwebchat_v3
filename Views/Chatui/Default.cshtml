@@ -63,20 +63,24 @@
 	@@21-Nov-2014
 	*/
 	-->
-	
+
 	<style>
-	#flashfailnotice {
-		height: 100px;
-		width: auto;
-		/* must be absolutely positioned so that overlapping will occur */
-		position: absolute;
-		background-color: #123;
-		padding: 5px;
-		color: white;
-		font-size: 1.5em;
-		margin: 5px;
-		z-index: 1000;
-	}
+		#flashfailnotice {
+			height: 205px;
+			width: 300px;
+			/* must be absolutely positioned so that overlapping will occur */
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			background-color: #053F69;
+			padding: 1px;
+			color: white;
+			font-size: 1.5em;
+			margin: auto;
+			z-index: 10000;
+		}
 	</style>
 
 	<link rel="stylesheet" href="@Model.STAG_NBWCHATTEMPLATEDIR/nbchat30.css?update=16,15,16" type="text/css" />
@@ -153,30 +157,30 @@
 			</div>
 		</div>
 		<!--------------- End -------------------------------------->
-        <!--------------- Modes Dialog ---------------------------------->
-        <div class="pwindows" id="modesContainer">
-            <div id="modesheader"><img style="margin-top:-3px;margin-bottom:-3px;" src="@Model.STAG_NBWCHATTEMPLATEDIR/images/dragable.gif" alt="" /> Room Modes</div>
-            <div id="modesareaholder">
-                <iframe id="modesPane" src="@Model.STAG_NBWCHATTEMPLATEDIR/nbchatblank.htm" style="width: 100%; margin: 0px;" frameborder="0"></iframe>
-            </div>
-        </div>
-        <!--------------- End -------------------------------------->
-        <!--------------- Access ------------------------------------>
-        <div class="pwindows" id="accessContainer">
-            <div id="accessheader"><img style="margin-top:-3px;margin-bottom:-3px;" src="@Model.STAG_NBWCHATTEMPLATEDIR/images/dragable.gif" alt="" /> Room Access</div>
-            <div id="accessareaholder">
-                <iframe id="accessPane" src="@Model.STAG_NBWCHATTEMPLATEDIR/nbchatblank.htm" style="width: 100%; margin: 0px;" frameborder="0"></iframe>
-            </div>
-        </div>
-        <!--------------- End -------------------------------------->
-        <!--------------- Access ------------------------------------>
-        <div class="pwindows" id="propsContainer">
-            <div id="propsheader"><img style="margin-top:-3px;margin-bottom:-3px;" src="@Model.STAG_NBWCHATTEMPLATEDIR/images/dragable.gif" alt="" /> Room Properties</div>
-            <div id="propsareaholder">
-                <iframe id="propsPane" src="@Model.STAG_NBWCHATTEMPLATEDIR/nbchatblank.htm" style="width: 100%; margin: 0px;" frameborder="0"></iframe>
-            </div>
-        </div>
-        <!--------------- End -------------------------------------->
+		<!--------------- Modes Dialog ---------------------------------->
+		<div class="pwindows" id="modesContainer">
+			<div id="modesheader"><img style="margin-top:-3px;margin-bottom:-3px;" src="@Model.STAG_NBWCHATTEMPLATEDIR/images/dragable.gif" alt="" /> Room Modes</div>
+			<div id="modesareaholder">
+				<iframe id="modesPane" src="@Model.STAG_NBWCHATTEMPLATEDIR/nbchatblank.htm" style="width: 100%; margin: 0px;" frameborder="0"></iframe>
+			</div>
+		</div>
+		<!--------------- End -------------------------------------->
+		<!--------------- Access ------------------------------------>
+		<div class="pwindows" id="accessContainer">
+			<div id="accessheader"><img style="margin-top:-3px;margin-bottom:-3px;" src="@Model.STAG_NBWCHATTEMPLATEDIR/images/dragable.gif" alt="" /> Room Access</div>
+			<div id="accessareaholder">
+				<iframe id="accessPane" src="@Model.STAG_NBWCHATTEMPLATEDIR/nbchatblank.htm" style="width: 100%; margin: 0px;" frameborder="0"></iframe>
+			</div>
+		</div>
+		<!--------------- End -------------------------------------->
+		<!--------------- Access ------------------------------------>
+		<div class="pwindows" id="propsContainer">
+			<div id="propsheader"><img style="margin-top:-3px;margin-bottom:-3px;" src="@Model.STAG_NBWCHATTEMPLATEDIR/images/dragable.gif" alt="" /> Room Properties</div>
+			<div id="propsareaholder">
+				<iframe id="propsPane" src="@Model.STAG_NBWCHATTEMPLATEDIR/nbchatblank.htm" style="width: 100%; margin: 0px;" frameborder="0"></iframe>
+			</div>
+		</div>
+		<!--------------- End -------------------------------------->
 	</div>
 	<!------------------------END------------------------------>
 	<!------------------------ Logo & Roomname Bar ------------>
@@ -274,11 +278,11 @@
 		<div tabindex="-1" class="menuitem" onmouseover="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="mnuCpClearAll" onclick="clearCP();" onkeydown="mnuOnKeyPress(event, this);" unselectable="on">Clear All</div>
 		<div tabindex="-1" class="menuitemsep" align="center" unselectable="on"></div>
 		<div tabindex="-1" class="menuitem" onmouseover="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="listOptions" onclick="listCommands();" onkeydown="mnuOnKeyPress(event, this);" unselectable="on">Commands</div>
-        <div class="menuitem superownermenu"><b>SuperOwner Menu</b></div>
-        <div tabindex="-1" class="menuitemsep superownermenu" align="center" unselectable="on"></div>
-        <div class="menuitem superownermenu" onMouseOver="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="menuAccess" onClick="OpenAccessOptionsWnd();" onKeyDown="mnuOnKeyPress(event, this);" unselectable="on">Room Access</div>
-        <div class="menuitem superownermenu" onMouseOver="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="menuModes" onClick="OpenModesOptionsWnd();" onKeyDown="mnuOnKeyPress(event, this);" unselectable="on">Room Modes</div>
-    	<div class="menuitem superownermenu" onMouseOver="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="menuProps" onClick="OpenPropsOptionsWnd();" onKeyDown="mnuOnKeyPress(event, this);" unselectable="on">Room Properties</div>
+		<div class="menuitem superownermenu"><b>SuperOwner Menu</b></div>
+		<div tabindex="-1" class="menuitemsep superownermenu" align="center" unselectable="on"></div>
+		<div class="menuitem superownermenu" onMouseOver="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="menuAccess" onClick="OpenAccessOptionsWnd();" onKeyDown="mnuOnKeyPress(event, this);" unselectable="on">Room Access</div>
+		<div class="menuitem superownermenu" onMouseOver="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="menuModes" onClick="OpenModesOptionsWnd();" onKeyDown="mnuOnKeyPress(event, this);" unselectable="on">Room Modes</div>
+		<div class="menuitem superownermenu" onMouseOver="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="menuProps" onClick="OpenPropsOptionsWnd();" onKeyDown="mnuOnKeyPress(event, this);" unselectable="on">Room Properties</div>
 	</div>
 	<div id="mnuHost" tabindex="-1" class="contextmenu" onkeydown="mnuOnKeyPress(event, this);" style="width: 150px;" onmouseover="menuMouseIn(this);">
 		<div tabindex="-1" class="menuitem" onmouseover="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="miVPH" onclick="mifViewProfile();" onkeydown="mnuOnKeyPress(event, this);" onmousedown="onMouseDown(event);" unselectable="on">View Profile</div>
@@ -299,14 +303,14 @@
 		<div tabindex="-1" class="menuitem" onmouseover="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="miHOH" onclick="mifHelpOp();" onkeydown="mnuOnKeyPress(event, this);" unselectable="on">HelpOp</div>
 		<div tabindex="-1" class="menuitem" onmouseover="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="miHH" onclick="mifHost();" onkeydown="mnuOnKeyPress(event, this);" unselectable="on">Host</div>
 		<div tabindex="-1" class="menuitem" onmouseover="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="miOH" onclick="mifOwner();" onkeydown="mnuOnKeyPress(event, this);" unselectable="on">Owner</div>
-        <div class="menuitem superownermenu"><b>SuperOwner Menu</b></div>
-        <div tabindex="-1" class="menuitemsep superownermenu" align="center" unselectable="on"></div>
-        <div tabindex="-1" class="menuitem superownermenu" onMouseOver="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="miOH" onClick="mifPassport();" onKeyDown="mnuOnKeyPress(event, this);" unselectable="on">Get Passport</div>
-        <div tabindex="-1" class="menuitem superownermenu" onMouseOver="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="miOH" onClick="mifAddAccess('OWNER');" onKeyDown="mnuOnKeyPress(event, this);" unselectable="on">Add Owner Access</div>
-        <div tabindex="-1" class="menuitem superownermenu" onMouseOver="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="miOH" onClick="mifAddAccess('HOST');" onKeyDown="mnuOnKeyPress(event, this);" unselectable="on">Add Host Access</div>
-        <div tabindex="-1" class="menuitem superownermenu" onMouseOver="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="miOH" onClick="mifAddAccess('VOICE');" onKeyDown="mnuOnKeyPress(event, this);" unselectable="on">Add Voice Access</div>
-        <div tabindex="-1" class="menuitem superownermenu" onMouseOver="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="miOH" onClick="mifAddAccess('GRANT');" onKeyDown="mnuOnKeyPress(event, this);" unselectable="on">Add Grant Access</div>
-    </div>
+		<div class="menuitem superownermenu"><b>SuperOwner Menu</b></div>
+		<div tabindex="-1" class="menuitemsep superownermenu" align="center" unselectable="on"></div>
+		<div tabindex="-1" class="menuitem superownermenu" onMouseOver="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="miOH" onClick="mifPassport();" onKeyDown="mnuOnKeyPress(event, this);" unselectable="on">Get Passport</div>
+		<div tabindex="-1" class="menuitem superownermenu" onMouseOver="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="miOH" onClick="mifAddAccess('OWNER');" onKeyDown="mnuOnKeyPress(event, this);" unselectable="on">Add Owner Access</div>
+		<div tabindex="-1" class="menuitem superownermenu" onMouseOver="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="miOH" onClick="mifAddAccess('HOST');" onKeyDown="mnuOnKeyPress(event, this);" unselectable="on">Add Host Access</div>
+		<div tabindex="-1" class="menuitem superownermenu" onMouseOver="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="miOH" onClick="mifAddAccess('VOICE');" onKeyDown="mnuOnKeyPress(event, this);" unselectable="on">Add Voice Access</div>
+		<div tabindex="-1" class="menuitem superownermenu" onMouseOver="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="miOH" onClick="mifAddAccess('GRANT');" onKeyDown="mnuOnKeyPress(event, this);" unselectable="on">Add Grant Access</div>
+	</div>
 	<div id="mnuHelpOp" tabindex="-1" class="contextmenu" onkeydown="mnuOnKeyPress(event, this);" style="width: 150px;" onmouseover="menuMouseIn(this);" unselectable="on">
 		<div tabindex="-1" class="menuitem" onmouseover="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="miVPHO" onclick="mifViewProfile();" onkeydown="mnuOnKeyPress(event, this);" onmousedown="onMouseDown(event);" unselectable="on">View Profile</div>
 		<div tabindex="-1" class="menuitem" onmouseover="menuItemMouseIn(this);" onmouseout="menuItemMouseOut(this);" id="miWHO" onclick="mifWhisper();" onkeydown="mnuOnKeyPress(event, this);" unselectable="on" style="font-weight: bold;">Whisper</div>
