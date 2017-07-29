@@ -13,7 +13,7 @@ var cie = (function () {
 		all = div.getElementsByTagName('i');
 
 	while (
-		div.innerHTML = '<!--[if gt IE ' + ++v + ']><i></i><![endif]-->',
+		div.innerHTML = '<!--[if gt IE ' + (++v) + ']><i></i><![endif]-->',
 		all[0]
 	);
 
@@ -25,41 +25,41 @@ function getHexFromRGB(rgb) {
 		var rergb = /\d{1,3}/g;
 		var retvals = rgb.match(rergb);
 
-		if (retvals.length === 3) {
-			var r = parseInt(retvals[0], 10).toString(16);
+		if (retvals.length == 3) {
+			var r = parseInt(retvals[0], 10).toString(16);;
 			var g = parseInt(retvals[1], 10).toString(16);
 			var b = parseInt(retvals[2], 10).toString(16);
 
-			if (r.length === 1) r = '0' + r;
-			if (g.length === 1) g = '0' + g;
-			if (b.length === 1) b = '0' + b;
+			if (r.length == 1) r = '0' + r;
+			if (g.length == 1) g = '0' + g;
+			if (b.length == 1) b = '0' + b;
 
 			return "#" + r + g + b;
 		}
 	}
 	catch (e) {
-		// continue regardless of error
 	}
 
 	return "#000000";
 }
-
 function selectSelColor(psel, color) {
 	/*if (window.parent.isFF || window.parent.isWK) selectSelItem(psel, getHexFromRGB(color));
 	else selectSelItem(psel, color);*/
-
-	var cstr = getHexFromRGB(color);
-	var cres = cstr.replace("#", "");
-
 	if (window.parent.isFF || window.parent.isWK) {
 		pselColor.value = getHexFromRGB(color);
+		var cstr = getHexFromRGB(color);
+		var cres = cstr.replace("#", "");
 		pselColor.color.fromString(cres);
 	}
 	else {
 		pselColor.value = color;
-		if (cie >= 9) {
+		var cstr = getHexFromRGB(color);
+		var cres = cstr.replace("#", "");
+		if (cie < 9) { }
+		else {
 			pselColor.color.fromString(cres);
 		}
+
 	}
 }
 function selectSelItem(psel, val, remValSingleQuote) {
@@ -69,7 +69,7 @@ function selectSelItem(psel, val, remValSingleQuote) {
 		val = val.replace(/"/g, "");
 	}
 	for (var i = 0; i < psel.options.length; i++) {
-		if (psel.options[i].value.toLowerCase() === val.toLowerCase()) {
+		if (psel.options[i].value.toLowerCase() == val.toLowerCase()) {
 			psel.selectedIndex = i;
 			return;
 		}
@@ -117,11 +117,11 @@ function fnOnLoad() {
 	pchSndWhisp = document.getElementById('chSndWhisp');
 
 	ptxSample.style.cssText = fnDecodeFrmtCode(window.parent.sDspFrmt);
-	if (window.parent.isWK === true) selectSelItem(pselFont, ptxSample.style.fontFamily, true);
+	if (window.parent.isWK == true) selectSelItem(pselFont, ptxSample.style.fontFamily, true);
 	else selectSelItem(pselFont, ptxSample.style.fontFamily, false);
 	selectSelColor(pselColor, ptxSample.style.color);
-	pchBold.checked = ptxSample.style.fontWeight === 'bold' ? true : false;
-	pchItalic.checked = ptxSample.style.fontStyle === 'italic' ? true : false;
+	pchBold.checked = (ptxSample.style.fontWeight == 'bold') ? true : false;
+	pchItalic.checked = (ptxSample.style.fontStyle == 'italic') ? true : false;
 
 	if (window.parent._pcpbody.style.fontSize.length > 0) pselFontSize.value = window.parent._pcpbody.style.fontSize;
 	pchCorpText.checked = window.parent.bCorpText;
@@ -169,7 +169,7 @@ function fnOnLoad() {
 	oOPtions.sndInvite = pchSndInvite.checked;
 	oOPtions.sndWhisp = pchSndWhisp.checked;
 
-	if (window.parent.bUrlOn >= 1) { oOPtions.bYoutubeUrl = window.parent.bYoutubeUrl; }
+	if (window.parent.bUrlOn >= 1) { oOPtions.bYoutubeUrl = window.parent.bYoutubeUrl }
 	else { oOPtions.bYoutubeUrl = 1; }
 	oOPtions.bYoutubeUrl = window.parent.bYoutubeUrl - 1;
 	document.getElementById("utubeurl").selectedIndex = oOPtions.bYoutubeUrl;
@@ -193,11 +193,11 @@ function fnOnFontFamilyChange() {
 	oOPtions.font = pselFont.value;
 }
 function fnOnBoldCheckChange() {
-	ptxSample.style.fontWeight = pchBold.checked ? 'bold' : 'normal';
+	ptxSample.style.fontWeight = (pchBold.checked) ? 'bold' : 'normal';
 	oOPtions.bold = pchBold.checked;
 }
 function fnOnItalicCheckChange() {
-	ptxSample.style.fontStyle = pchItalic.checked ? 'italic' : 'normal';
+	ptxSample.style.fontStyle = (pchItalic.checked) ? 'italic' : 'normal';
 	oOPtions.italic = pchItalic.checked;
 }
 
@@ -227,7 +227,7 @@ function fnOnbTimeStampChange() {
 // Update Aug 12 2015 Extra Settings
 function fnOnbInviteChange() {
 	oOPtions.bInviteOn = pchInvite.checked;
-	if (pchInvite.checked === true) { pchSndInvite.checked = false; }
+	if (pchInvite.checked == true) { pchSndInvite.checked = false; }
 	else { pchSndInvite.checked = true; }
 	oOPtions.sndInvite = pchSndInvite.checked;
 
@@ -244,7 +244,7 @@ function fnOnbUnoticeChange() {
 function fnOnChShowArrivals() {
 	oOPtions.showArrivals = pchShowArrivals.checked;
 
-	if (pchShowArrivals.checked === false) pchSndArrival.checked = false;
+	if (pchShowArrivals.checked == false) pchSndArrival.checked = false;
 }
 function fnOnChShowStatusChange() {
 	oOPtions.showStatusChg = pchShowStatusChg.checked;
@@ -281,15 +281,15 @@ function fnOnUrlOff() {
 function fnOnUrlManageChange() {
 	var select = document.getElementById("urlm");
 	var selectedString = select.options[select.selectedIndex].value;
-	if (selectedString === 2) { oOPtions.bSafeUrlCheckOn = true; }
+	if (selectedString == 2) { oOPtions.bSafeUrlCheckOn = true; }
 	else { oOPtions.bSafeUrlCheckOn = false; }
 	oOPtions.bSafeUrlCheckOn = false;
 }
 function fnOnUtubeManageChange() {
 	var select = document.getElementById("utubeurl");
 	var selectedString = select.options[select.selectedIndex].value;
-	if (selectedString === 2) { oOPtions.bYoutubeUrl = 2; }
-	else if (selectedString === 3) { oOPtions.bYoutubeUrl = 3; }
+	if (selectedString == 2) { oOPtions.bYoutubeUrl = 2; }
+	else if (selectedString == 3) { oOPtions.bYoutubeUrl = 3; }
 	else { oOPtions.bYoutubeUrl = 1; }
 }
 //
