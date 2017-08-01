@@ -1,9 +1,10 @@
-// JScript source code
+﻿// JScript source code
 var userAgent = navigator.userAgent.toLowerCase();
 //alert(userAgent);
 var isIE = (userAgent.indexOf('msie') !== -1);
 var isFF = (userAgent.indexOf('firefox') !== -1);
 var isWK = (userAgent.indexOf('webkit') !== -1);
+var FLAG_DONTSHOWIDENT = true;
 var dtTmssaved = false;
 //Update(01-Oct-2014): protection against time and version reply flooding. --Mike
 var waiterror = false;
@@ -1705,7 +1706,7 @@ function onJoin(ujoined, chan) {
 	if (bDspArrivals != false) {
 		var usrname = (bShowIdentOnJoin) ? getUserLabel(ujoined.nick) + "!" + ujoined.fullident + "@*" : getUserLabel(ujoined.nick);
 		// Update Dec 3 2016 Superowner show ident Mike
-		if (ouserMe.ilevel >= IsSuperOwner) { fnAppendText('<span class="msgfrmtparent"><span class="msgfrmt4">' + cmdIndChar + ' <a class="usernickclick" style="text-decoration:none;" href="javascript:;" onclick="usernickclick(\'' + ujoined.nick + '\');">' + usrname + '</a> ' + langr.l_userhasjoined + ' Passport: ' + ujoined.ident + '</span></span>'); }
+		if (ouserMe.ilevel >= IsSuperOwner && FLAG_DONTSHOWIDENT == false) { fnAppendText('<span class="msgfrmtparent"><span class="msgfrmt4">' + cmdIndChar + ' <a class="usernickclick" style="text-decoration:none;" href="javascript:;" onclick="usernickclick(\'' + ujoined.nick + '\');">' + usrname + '</a> ' + langr.l_userhasjoined + ' Passport: ' + ujoined.ident + '</span></span>'); }
 		else { fnAppendText('<span class="msgfrmtparent"><span class="msgfrmt4">' + cmdIndChar + ' <a class="usernickclick" style="text-decoration:none;" href="javascript:;" onclick="usernickclick(\'' + ujoined.nick + '\');">' + usrname + '</a> ' + langr.l_userhasjoined + '</span></span>'); }
 	}
 	UpdateUserCount();
@@ -1718,7 +1719,7 @@ function onRemoveUserByNick(sNick) {
 	if (pUser != null) {
 		// Update Dec 3 2016 Superowner show ident Mike
 		if (bDspDeparts != false) {
-			if (ouserMe.ilevel >= IsSuperOwner) {
+		    if (ouserMe.ilevel >= IsSuperOwner && FLAG_DONTSHOWIDENT == false) {
 				if (pUser.ident != null) { var passportshow = "Passport: " + pUser.ident; }
 				else { var passportshow = ''; }
 				fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt4'>" + cmdIndChar + " " + ((pUser.tagged == true) ? ("<span class='cpnicktaggeduser'>" + getUserLabel(pUser.nick) + "</span>") : getUserLabel(pUser.nick)) + " " + langr.l_userhasleft + " " + passportshow + "</span></span>");
