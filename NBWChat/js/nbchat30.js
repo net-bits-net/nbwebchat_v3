@@ -1085,7 +1085,7 @@ function ProcessInterUserCommand(sCmd) {
 }
 
 function listCommands() {
-	fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt2'>" + langr.l_commandlinessupported + " " + sanitizeHtml("FixScroll, Reconnect, Disconnect, Hop, Clear, Away [<Away Message>], Unaway, Nick <Nickname>, DebugPrint, ShowGuestpassStored, SaveGuestpass <Guest Password>, Kick <kick message>, Ban15m <ban message>, Ban1h <ban message>, Ban24h <ban message>, Guestban, Guestunban, Guestmircban, Guestmircunban, INVITE <username>, TOPIC <topic message>, WELCOME <welcome message>, +/-PROTECTIONMODE") + ". Commands must start with /</span></span>");
+	fnAppendText("<span class='msgfrmtparent'><span class='msgfrmt2'>" + langr.l_commandlinessupported + " " + sanitizeHtml("FixScroll, Reconnect, Disconnect, Hop, Clear, Away [<Away Message>], Unaway, Nick <Nickname>, DebugPrint, ShowGuestpassStored, SaveGuestpass <Guest Password>, Kick <kick message>, Ban15m <ban message>, Ban1h <ban message>, Ban24h <ban message>, Guestban, Guestunban, Guestmircban, Guestmircunban, INVITE <username>, TOPIC <topic message>, WELCOME <welcome message>, +/-PROTECTIONMODE") + langr.l_commandlinessupported_b + "</span></span>");
 	closeAllMenus();
 }
 function updateAwayButton(away) {
@@ -1823,14 +1823,14 @@ function onNoticePrivate(sNickFrom, sChan, sMessage) {
 
 function onNoticeChanBroadcast(sNickFrom, sChan, sMessage) {
 	if (sMessage == XmlNullChar) sMessage = '';
-	fnAppendText("<div class='broadcastmessage'><span class='broadcasttitlecr'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_owner"] + "' border='0' class='lvuitemico' />&nbsp;Chat Room Broadcast:</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
-	sendTostatus("<div class='broadcastmessage'><span class='broadcasttitlecr'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_owner"] + "' border='0' class='lvuitemico' />&nbsp;Chat Room Broadcast:</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
+	fnAppendText("<div class='broadcastmessage'><span class='broadcasttitlecr'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_owner"] + "' border='0' class='lvuitemico' />&nbsp;" + langr.l_chatroombroadcast + "</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
+	sendTostatus("<div class='broadcastmessage'><span class='broadcasttitlecr'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_owner"] + "' border='0' class='lvuitemico' />&nbsp;" + langr.l_chatroombroadcast + "</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
 }
 
 function onNoticeServerBroadcast(sNickFrom, sMessage) {
 	if (sMessage == XmlNullChar) sMessage = '';
-	fnAppendText("<div class='broadcastmessage'><span class='broadcasttitlesrv'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_staff"] + "' border='0' class='lvuitemico' />&nbsp;Server Broadcast:</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
-	sendTostatus("<div class='broadcastmessage'><span class='broadcasttitlesrv'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_staff"] + "' border='0' class='lvuitemico' />&nbsp;Server Broadcast:</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
+	fnAppendText("<div class='broadcastmessage'><span class='broadcasttitlesrv'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_staff"] + "' border='0' class='lvuitemico' />&nbsp;" + langr.l_serverbroadcast + "</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
+	sendTostatus("<div class='broadcastmessage'><span class='broadcasttitlesrv'><img unselectable='on' src='" + sIcoDir2 + arListIcons["ico_staff"] + "' border='0' class='lvuitemico' />&nbsp;" + langr.l_serverbroadcast + "</span> <span class='broadcastmsg'>" + ParseTextMessage(sMessage) + "</span></div>");
 }
 
 function onNoticeServerMessage(sMessage) {
@@ -1847,15 +1847,15 @@ function onKick(sNickFrom, sChan, sNickTo, sMessage) {
 	//ToDo: check if the remove call is the correct one. whispers.
 	if (sNickTo != ouserMe.nick) {
 		if (olvUsers.removeItemByName(sNickTo) >= 0) {
-			if (sMessage != XmlNullChar) fnAppendText("<span class='kicked'>" + getUserLabel(sNickTo) + " has been kicked out by " + getUserLabel(sNickFrom) + ". Reason: " + ParseTextMessage(sMessage) + "</span>");
-			else fnAppendText("<span class='kicked'>" + getUserLabel(sNickTo) + " has been kicked out by " + getUserLabel(sNickFrom) + ".</span>");
+			if (sMessage != XmlNullChar) fnAppendText("<span class='kicked'>" + getUserLabel(sNickTo) + " " + langr.l_kickedoutby + " " + getUserLabel(sNickFrom) + ". " + langr.l_kickreason + " " + ParseTextMessage(sMessage) + "</span>");
+			else fnAppendText("<span class='kicked'>" + getUserLabel(sNickTo) + " " + langr.l_kickedoutby + " " + getUserLabel(sNickFrom) + ".</span>");
 			EndTabs(sNickTo); //ToDo: bug, if nick wrong function doesn't return
 			if (bSndKick) flashObj.playKickSnd();
 		}
 	}
 	else {
-		if (sMessage != XmlNullChar) fnAppendText("<span class='kickedme'>You have been kicked out by " + getUserLabel(sNickFrom) + ". Reason: " + ParseTextMessage(sMessage) + "</span>");
-		else fnAppendText("<span class='kicked'>You have been kicked out by " + getUserLabel(sNickFrom) + ".</span>");
+		if (sMessage != XmlNullChar) fnAppendText("<span class='kickedme'>" + langr.l_youhavebeenkickedoutby + " " + getUserLabel(sNickFrom) + ". " + langr.l_kickreason + " " + ParseTextMessage(sMessage) + "</span>");
+		else fnAppendText("<span class='kicked'>" + langr.l_youhavebeenkickedoutby + " " + getUserLabel(sNickFrom) + ".</span>");
 		onClearUserList();
 		if (bSndKick) flashObj.playKickSnd();
 	}
@@ -4451,7 +4451,7 @@ var wndChatOptions = null;
 
 
 function OpenChatOptionsWnd() {
-	$('#optionsPane').attr('src', sFUIDIR2 + 'nbchatoptions.htm?v2');
+	$('#optionsPane').attr('src', sFUIDIR2 + 'nbchatoptions.htm?v2,0');
 	$('.pwindows').css('z-index', '200');
 	$('#optionsContainer').css('z-index', '201');
 	$('#optionsContainer').fadeIn();
