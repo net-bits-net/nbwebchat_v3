@@ -4,7 +4,7 @@ var userAgent = navigator.userAgent.toLowerCase();
 var isIE = (userAgent.indexOf('msie') !== -1);
 var isFF = (userAgent.indexOf('firefox') !== -1);
 var isWK = (userAgent.indexOf('webkit') !== -1);
-var FLAG_DONTSHOWIDENT = true;
+var FLAG_DONTSHOWIDENT = false;
 var dtTmssaved = false;
 //Update(01-Oct-2014): protection against time and version reply flooding. --Mike
 var waiterror = false;
