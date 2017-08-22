@@ -219,6 +219,31 @@
 				<li><a class="menubuttons" title="More Rooms" target="_blank" href="@Url.Content("~/ChannelsList")">More Rooms</a></li>
 				<li><a class="menubuttons" title="Options" href="javascript:OpenChatOptionsWnd();">Options</a></li>
 				<li><a class="menubuttons" title="Help" target="_blank" href="#">Help</a></li>
+				@using Microsoft.AspNet.Identity
+                		@{
+					var MyUserId = User.Identity.GetUserId();
+                    			var MyUserName = User.Identity.GetUserName();
+				}
+
+                		@if (Request.IsAuthenticated)
+                		{
+                    		<li>
+                        	@Html.ActionLink("Hello " + MyUserName + "!", "Manage", "u/" + MyUserId, routeValues: null, htmlAttributes: new { title = "Manage Account", target = "_blank" })
+                    		</li>    
+                    		<li><a href="javascript:document.getElementById('logoutForm').submit()">Log off</a></li>
+
+                    		using (Html.BeginForm("LogOff", "Account", FormMethod.Post, new { id = "logoutForm", @class = "navbar-form" }))
+                    		{
+                        	@Html.AntiForgeryToken()
+
+                    		}
+
+                		}
+               			else
+                		{
+                    		<li>@Html.ActionLink("Sign In", "Login", "Account", routeValues: null, htmlAttributes: new { id = "loginLink" })</li>
+                    		<li>@Html.ActionLink("Register", "Register", "Account", routeValues: null, htmlAttributes: new { id = "registerLink" })</li>
+                		}
 			</ul>
 		</div>
 	</div>
