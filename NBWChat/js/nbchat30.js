@@ -3470,10 +3470,10 @@ function fnKickBan(ppUser, flag, sMsg) {
 function mifBan15m() {
 
 	var selUserL = olvUsers.selectedUser();
-
+	var kmsg = prompt(langr.l_enterkickmsg, "");
 	if (selUserL.ident != null) {
-		var sIRCCMD = "KICK " + m_sChan + " " + selUserL.nick + "\r\n";
-		sIRCCMD += "ACCESS " + m_sChan + " ADD DENY " + selUserL.ident + " 15 :";
+	    var sIRCCMD = "KICK " + m_sChan + " " + selUserL.nick + " " + kmsg + " (ban 15 mins).\r\n";
+	    sIRCCMD += "ACCESS " + m_sChan + " ADD DENY " + selUserL.ident + " 15 :" + kmsg;
 	}
 	else {
 		var sIRCCMD = "USERHOST " + selUserL.nick;
@@ -3488,10 +3488,11 @@ function mifBan15m() {
 function mifBan1h() {
 
 	var selUserL = olvUsers.selectedUser();
-
+	var kmsg = prompt(langr.l_enterkickmsg, "");
 	if (selUserL.ident != null) {
-		var sIRCCMD = "KICK " + m_sChan + " " + selUserL.nick + "\r\n";
-		sIRCCMD += "ACCESS " + m_sChan + " ADD DENY " + selUserL.ident + " 60 :";
+	    var sIRCCMD = "KICK " + m_sChan + " " + selUserL.nick + " " + kmsg + " (ban 1 hr).\r\n";
+	    var sIRCCMD = "KICK " + m_sChan + " " + selUserL.nick + " " + kmsg + " (ban 1 hr).\r\n";
+	    sIRCCMD += "ACCESS " + m_sChan + " ADD DENY " + selUserL.ident + " 60 :" + kmsg;
 	}
 	else {
 		var sIRCCMD = "USERHOST " + selUserL.nick;
@@ -3506,10 +3507,10 @@ function mifBan1h() {
 function mifBan24h() {
 
 	var selUserL = olvUsers.selectedUser();
-
+	var kmsg = prompt(langr.l_enterkickmsg, "");
 	if (selUserL.ident != null) {
-		var sIRCCMD = "KICK " + m_sChan + " " + selUserL.nick + "\r\n";
-		sIRCCMD += "ACCESS " + m_sChan + " ADD DENY " + selUserL.ident + " 1440 :";
+	    var sIRCCMD = "KICK " + m_sChan + " " + selUserL.nick + " " + kmsg + " (ban 24 hrs).\r\n";
+	    sIRCCMD += "ACCESS " + m_sChan + " ADD DENY " + selUserL.ident + " 1440 :" + kmsg;
 	}
 	else {
 		var sIRCCMD = "USERHOST " + selUserL.nick;
